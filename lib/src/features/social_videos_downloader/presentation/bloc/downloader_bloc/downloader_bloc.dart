@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anr_saver/src/features/social_videos_downloader/domain/entities/video.dart';
@@ -49,6 +50,9 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
   // Track active downloads for pause/resume functionality
   Map<String, bool> pausedDownloads = {};
 
+  // Track active download cancel tokens for proper cancellation
+  Map<String, CancelToken> activeDownloads = {};
+
   Future<void> _getVideo(
     DownloaderGetVideo event,
     Emitter<DownloaderState> emit,
@@ -67,7 +71,7 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
   ) async {
     bool checkPermissions = await PermissionsHelper.checkPermission();
     if (!checkPermissions) {
-      emit(const DownloaderSaveVideoFailure(AppStrings.permissionsRequired));
+      emit(DownloaderSaveVideoFailure(AppStrings.permissionsRequired));
       return;
     }
 
@@ -98,14 +102,24 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     await _saveDownloadHistory(); // Save to persistent storage
     emit(const DownloaderSaveVideoLoading());
 
-    // Create progress callback for real-time updates
+    // Create optimized progress callback for real-time updates
+    DateTime? lastProgressUpdate;
     void onProgressUpdate(int received, int total) {
-      // Check if download was paused
-      if (pausedDownloads.containsKey(path)) {
-        return; // Stop progress updates if paused
+      // Check if download was paused or cancelled
+      if (pausedDownloads.containsKey(path) ||
+          !activeDownloads.containsKey(path)) {
+        return; // Stop progress updates if paused or cancelled
       }
 
       if (total > 0) {
+        // Throttle progress updates to prevent UI blocking
+        final now = DateTime.now();
+        if (lastProgressUpdate != null &&
+            now.difference(lastProgressUpdate!).inMilliseconds < 100) {
+          return; // Skip update if less than 100ms since last update
+        }
+        lastProgressUpdate = now;
+
         double progress = (received / total) * 100;
         // Ensure progress doesn't exceed 100% and minimum 1% when started
         progress = progress.clamp(1.0, 99.0);
@@ -117,9 +131,8 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
               progress: progress,
             ));
 
-        // Save progress periodically
+        // Save progress periodically (every 10%)
         if (progress % 10 < 1) {
-          // Save every 10% progress
           _saveDownloadHistory();
         }
 

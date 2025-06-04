@@ -111,7 +111,7 @@ class DownloadItemStatus extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const VideoStatusWidget(
+                VideoStatusWidget(
                   label: AppStrings.downloading,
                   icon: Icons.cloud_download,
                   color: AppColors.primaryColor,
@@ -130,8 +130,7 @@ class DownloadItemStatus extends StatelessWidget {
             LinearProgressIndicator(
               value: currentItem.progress / 100,
               backgroundColor: AppColors.primaryColor.withOpacity(0.1),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
             ),
             const SizedBox(height: 8),
             // Control buttons for downloading state
@@ -221,7 +220,7 @@ class DownloadItemStatus extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 VideoStatusWidget(
@@ -271,7 +270,7 @@ class DownloadItemStatus extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 VideoStatusWidget(

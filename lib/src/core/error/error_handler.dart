@@ -12,6 +12,10 @@ class ErrorHandler implements Exception {
       failure = _handleError(error);
     } else if (error is SocketException) {
       failure = const NoInternetConnectionFailure();
+    } else if (error is FormatException) {
+      failure = const BadRequestFailure();
+    } else if (error is FileSystemException) {
+      failure = const UnexpectedFailure();
     } else {
       failure = const UnexpectedFailure();
     }
@@ -29,7 +33,11 @@ Failure _handleError(DioException dioError) {
     case DioExceptionType.cancel:
       return const CancelRequestFailure();
     case DioExceptionType.unknown:
-      return const NoInternetConnectionFailure();
+      // Check if it's a network issue or other problem
+      if (dioError.error is SocketException) {
+        return const NoInternetConnectionFailure();
+      }
+      return const UnexpectedFailure();
     case DioExceptionType.badCertificate:
       return const BadCertificateFailure();
     case DioExceptionType.connectionError:
@@ -38,17 +46,39 @@ Failure _handleError(DioException dioError) {
 }
 
 Failure _handleResponseError(Response? response) {
+  final statusCode = response?.statusCode;
+  final errorData = response?.data;
 
-  switch (response?.statusCode) {
+  switch (statusCode) {
     case 400:
       return const BadRequestFailure();
+    case 401:
+      return const BadRequestFailure();
     case 403:
-      return NotSubscribedFailure(message: response?.data['message']);
-    case 429:
-      return TooManyRequestsFailure(message: response?.data['message']);
+      // Check if it's API subscription issue
+      String message = "Access denied";
+      if (errorData is Map && errorData['message'] != null) {
+        message = errorData['message'].toString();
+      }
+      if (message.toLowerCase().contains('not subscribed') ||
+          message.toLowerCase().contains('subscription')) {
+        return const NotSubscribedFailure(
+            message:
+                "API subscription required. Please check your API keys in settings.");
+      }
+      return NotSubscribedFailure(message: message);
     case 404:
       return const NotFoundFailure();
+    case 429:
+      String message =
+          "Rate limit exceeded. Please wait a moment and try again.";
+      if (errorData is Map && errorData['message'] != null) {
+        message = errorData['message'].toString();
+      }
+      return TooManyRequestsFailure(message: message);
     case 500:
+    case 502:
+    case 503:
       return const ServerFailure();
     default:
       return const UnexpectedFailure();

@@ -85,41 +85,113 @@ class DioHelper {
     Map<String, dynamic>? queryParams,
     Function(int received, int total)? onReceiveProgress,
   }) async {
-    Dio dio = Dio();
+    Dio downloadDio = Dio();
 
-    // Download the file
-    Response<ResponseBody> response = await dio.get<ResponseBody>(
-      downloadLink,
-      options: Options(
-        headers: {
-          "X-RapidAPI-Key": _apiKey,
-          "X-RapidAPI-Host": _apiHost,
-          "Accept": "*/*",
-          "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
-        },
-        responseType: ResponseType.stream,
-      ),
-      onReceiveProgress: onReceiveProgress,
+    // Configure timeout and connection settings for better performance
+    downloadDio.options = BaseOptions(
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(minutes: 10),
+      sendTimeout: const Duration(seconds: 30),
+      followRedirects: true,
+      maxRedirects: 5,
     );
 
-    final file = File(savePath);
-    final raf = file.openSync(mode: FileMode.write);
+    RandomAccessFile? raf;
 
-    // Write data to the file
-    await response.data!.stream.listen(
-      (data) {
-        raf.writeFromSync(data);
-      },
-      onDone: () async {
-        await raf.close();
-      },
-      onError: (error) {
-        raf.close();
-      },
-    ).asFuture();
+    try {
+      // Download the file with optimized settings
+      Response<ResponseBody> response = await downloadDio.get<ResponseBody>(
+        downloadLink,
+        options: Options(
+          headers: {
+            "X-RapidAPI-Key": _apiKey,
+            "X-RapidAPI-Host": _apiHost,
+            "Accept": "*/*",
+            "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Range": "bytes=0-", // Support for resume downloads
+          },
+          responseType: ResponseType.stream,
+        ),
+        onReceiveProgress: (received, total) {
+          // Throttle progress updates to improve performance
+          if (onReceiveProgress != null && total > 0) {
+            // Only update progress every 0.5% to prevent UI blocking
+            final progress = (received / total * 100);
+            if (received == 0 || received == total || (progress % 0.5) < 0.1) {
+              onReceiveProgress(received, total);
+            }
+          }
+        },
+      );
 
-    return response;
+      // Validate response
+      if (response.statusCode != 200 && response.statusCode != 206) {
+        throw Exception(
+            "Download failed with status code: ${response.statusCode}");
+      }
+
+      final file = File(savePath);
+
+      // Create directory if it doesn't exist
+      final directory = file.parent;
+      if (!directory.existsSync()) {
+        await directory.create(recursive: true);
+      }
+
+      raf = file.openSync(mode: FileMode.write);
+
+      // Write data to the file with improved error handling
+      await response.data!.stream.listen(
+        (data) {
+          try {
+            raf!.writeFromSync(data);
+          } catch (e) {
+            throw Exception("Failed to write data to file: $e");
+          }
+        },
+        onDone: () async {
+          try {
+            await raf?.close();
+          } catch (e) {
+            // Log but don't throw, file might already be closed
+          }
+        },
+        onError: (error) async {
+          try {
+            await raf?.close();
+          } catch (e) {
+            // Log but don't throw
+          }
+          throw Exception("Stream error during download: $error");
+        },
+      ).asFuture();
+
+      // Verify file was created and has content
+      if (!file.existsSync()) {
+        throw Exception("Download failed: File was not created");
+      }
+
+      final fileSize = file.lengthSync();
+      if (fileSize == 0) {
+        await file.delete();
+        throw Exception("Download failed: File is empty");
+      }
+
+      return response;
+    } catch (e) {
+      // Clean up on error
+      try {
+        await raf?.close();
+        final file = File(savePath);
+        if (file.existsSync() && file.lengthSync() == 0) {
+          await file.delete();
+        }
+      } catch (cleanupError) {
+        // Log cleanup error but don't throw
+      }
+      rethrow;
+    }
   }
 
   Future<Response> downloadImage({
@@ -128,39 +200,141 @@ class DioHelper {
     Map<String, dynamic>? queryParams,
     Function(int received, int total)? onReceiveProgress,
   }) async {
-    Dio dio = Dio();
+    Dio imageDio = Dio();
 
-    // Download the image file
-    Response<ResponseBody> response = await dio.get<ResponseBody>(
-      downloadLink,
-      options: Options(
-        headers: {
-          "Accept": "image/*,*/*",
-          "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
-          "Referer": "https://xiaohongshu.com/",
-        },
-        responseType: ResponseType.stream,
-      ),
-      onReceiveProgress: onReceiveProgress,
+    // Configure timeout and connection settings for image downloads
+    imageDio.options = BaseOptions(
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(minutes: 5),
+      sendTimeout: const Duration(seconds: 20),
+      followRedirects: true,
+      maxRedirects: 5,
     );
 
-    final file = File(savePath);
-    final raf = file.openSync(mode: FileMode.write);
+    RandomAccessFile? raf;
 
-    // Write image data to the file
-    await response.data!.stream.listen(
-      (data) {
-        raf.writeFromSync(data);
-      },
-      onDone: () async {
-        await raf.close();
-      },
-      onError: (error) {
-        raf.close();
-      },
-    ).asFuture();
+    try {
+      // Download the image file with optimized settings
+      Response<ResponseBody> response = await imageDio.get<ResponseBody>(
+        downloadLink,
+        options: Options(
+          headers: {
+            "Accept": "image/*,*/*",
+            "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer": "https://xiaohongshu.com/",
+            "Cache-Control": "no-cache",
+          },
+          responseType: ResponseType.stream,
+        ),
+        onReceiveProgress: (received, total) {
+          // Throttle progress updates for images too
+          if (onReceiveProgress != null && total > 0) {
+            // Only update progress every 1% for images to prevent UI blocking
+            final progress = (received / total * 100);
+            if (received == 0 || received == total || (progress % 1.0) < 0.1) {
+              onReceiveProgress(received, total);
+            }
+          }
+        },
+      );
 
-    return response;
+      // Validate response
+      if (response.statusCode != 200 && response.statusCode != 206) {
+        throw Exception(
+            "Image download failed with status code: ${response.statusCode}");
+      }
+
+      final file = File(savePath);
+
+      // Create directory if it doesn't exist
+      final directory = file.parent;
+      if (!directory.existsSync()) {
+        await directory.create(recursive: true);
+      }
+
+      raf = file.openSync(mode: FileMode.write);
+
+      // Write image data to the file with improved error handling
+      await response.data!.stream.listen(
+        (data) {
+          try {
+            raf!.writeFromSync(data);
+          } catch (e) {
+            throw Exception("Failed to write image data to file: $e");
+          }
+        },
+        onDone: () async {
+          try {
+            await raf?.close();
+          } catch (e) {
+            // Log but don't throw, file might already be closed
+          }
+        },
+        onError: (error) async {
+          try {
+            await raf?.close();
+          } catch (e) {
+            // Log but don't throw
+          }
+          throw Exception("Stream error during image download: $error");
+        },
+      ).asFuture();
+
+      // Verify image file was created and has content
+      if (!file.existsSync()) {
+        throw Exception("Image download failed: File was not created");
+      }
+
+      final fileSize = file.lengthSync();
+      if (fileSize == 0) {
+        await file.delete();
+        throw Exception("Image download failed: File is empty");
+      }
+
+      // Basic image validation - check for common image headers
+      final bytes = file.readAsBytesSync().take(10).toList();
+      if (bytes.length >= 4) {
+        bool isValidImage = false;
+
+        // Check for JPEG header (FF D8)
+        if (bytes[0] == 0xFF && bytes[1] == 0xD8) {
+          isValidImage = true;
+        }
+        // Check for PNG header (89 50 4E 47)
+        if (bytes[0] == 0x89 &&
+            bytes[1] == 0x50 &&
+            bytes[2] == 0x4E &&
+            bytes[3] == 0x47) {
+          isValidImage = true;
+        }
+        // Check for WebP header (52 49 46 46)
+        if (bytes[0] == 0x52 &&
+            bytes[1] == 0x49 &&
+            bytes[2] == 0x46 &&
+            bytes[3] == 0x46) {
+          isValidImage = true;
+        }
+
+        if (!isValidImage) {
+          await file.delete();
+          throw Exception("Downloaded file is not a valid image format");
+        }
+      }
+
+      return response;
+    } catch (e) {
+      // Clean up on error
+      try {
+        await raf?.close();
+        final file = File(savePath);
+        if (file.existsSync() && file.lengthSync() == 0) {
+          await file.delete();
+        }
+      } catch (cleanupError) {
+        // Log cleanup error but don't throw
+      }
+      rethrow;
+    }
   }
 }

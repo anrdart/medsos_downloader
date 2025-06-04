@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/styles_manager.dart';
+import '../../../../core/utils/app_strings.dart';
+import '../../../../core/providers/language_provider.dart';
 import '../widgets/downloads_screen/downloads_screen_body.dart';
 import '../bloc/downloader_bloc/downloader_bloc.dart';
 import '../../domain/entities/download_item.dart';
@@ -22,76 +25,82 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Downloads',
-          textAlign: TextAlign.center,
-          style: getTitleStyle(
-            color: AppColors.white,
-          ),
-        ),
-        actions: [
-          BlocBuilder<DownloaderBloc, DownloaderState>(
-            builder: (context, state) {
-              final newDownloads = context.read<DownloaderBloc>().newDownloads;
-              final oldDownloads = context.read<DownloaderBloc>().oldDownloads;
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              AppStrings.downloads,
+              textAlign: TextAlign.center,
+              style: getTitleStyle(
+                color: AppColors.white,
+              ),
+            ),
+            actions: [
+              BlocBuilder<DownloaderBloc, DownloaderState>(
+                builder: (context, state) {
+                  final newDownloads =
+                      context.read<DownloaderBloc>().newDownloads;
+                  final oldDownloads =
+                      context.read<DownloaderBloc>().oldDownloads;
 
-              // Apply filters
-              final filteredNewDownloads = _applyFilters(newDownloads);
-              final totalDownloads =
-                  filteredNewDownloads.length + oldDownloads.length;
+                  // Apply filters
+                  final filteredNewDownloads = _applyFilters(newDownloads);
+                  final totalDownloads =
+                      filteredNewDownloads.length + oldDownloads.length;
 
-              return Container(
-                margin: const EdgeInsets.only(right: 8),
-                child: Stack(
-                  children: [
-                    IconButton(
-                      onPressed: () {
-                        _showFilterBottomSheet(context);
-                      },
-                      icon: const Icon(
-                        Icons.filter_list,
-                        color: AppColors.white,
-                      ),
-                      tooltip: 'Filter & Sort',
-                    ),
-                    if (totalDownloads > 0)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryColor,
-                            borderRadius: BorderRadius.circular(10),
+                  return Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    child: Stack(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            _showFilterBottomSheet(context);
+                          },
+                          icon: const Icon(
+                            Icons.filter_list,
+                            color: AppColors.white,
                           ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            totalDownloads.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
+                          tooltip: 'Filter & Sort',
                         ),
-                      ),
-                  ],
-                ),
-              );
-            },
+                        if (totalDownloads > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryColor,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                totalDownloads.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
-      ),
-      body: DownloadsScreenBody(
-        selectedSort: selectedSort,
-        selectedPlatform: selectedPlatform,
-      ),
+          body: DownloadsScreenBody(
+            selectedSort: selectedSort,
+            selectedPlatform: selectedPlatform,
+          ),
+        );
+      },
     );
   }
 
@@ -123,16 +132,25 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   void _showFilterBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      isScrollControlled: true,
+      enableDrag: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+          minHeight: 200,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Handle
             Container(
+              margin: const EdgeInsets.only(top: 8),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
@@ -140,52 +158,62 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 20),
 
-            const Text(
-              'Filter & Sort Downloads',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 20),
+            // Scrollable content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
+                    const Center(
+                      child: Text(
+                        'Filter & Sort Downloads',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
 
-            // Sort Options
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Sort by:',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+                    // Sort Options
+                    const Text(
+                      'Sort by:',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    ...SortOption.values.map((sort) => _buildSortOption(sort)),
+
+                    const SizedBox(height: 20),
+
+                    // Platform Filter
+                    const Text(
+                      'Filter by Platform:',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    _buildPlatformOption(null, 'All Platforms'),
+                    ...SocialPlatform.values.map((platform) =>
+                        _buildPlatformOption(
+                            platform, _getPlatformName(platform))),
+
+                    // Bottom padding for safe area
+                    SizedBox(
+                        height: MediaQuery.of(context).padding.bottom + 20),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-
-            ...SortOption.values.map((sort) => _buildSortOption(sort)),
-
-            const SizedBox(height: 20),
-
-            // Platform Filter
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Filter by Platform:',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            _buildPlatformOption(null, 'All Platforms'),
-            ...SocialPlatform.values.map((platform) =>
-                _buildPlatformOption(platform, _getPlatformName(platform))),
-
-            const SizedBox(height: 20),
           ],
         ),
       ),

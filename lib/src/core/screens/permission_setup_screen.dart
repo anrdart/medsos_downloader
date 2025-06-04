@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:anr_saver/src/core/services/permission_service.dart';
-import 'package:anr_saver/src/core/services/update_service.dart';
 import '../../config/routes_manager.dart';
 import 'dart:developer' as developer;
 
@@ -16,7 +15,6 @@ class PermissionSetupScreen extends StatefulWidget {
 
 class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
   final PermissionService _permissionService = PermissionService();
-  final UpdateService _updateService = UpdateService();
   bool _isLoading = false;
 
   @override
@@ -89,9 +87,17 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                               children: [
                                 _buildPermissionItem(
                                   icon: Icons.folder,
-                                  title: 'Storage Access',
+                                  title: 'Gallery Access',
                                   description:
-                                      'Save downloaded videos to your device',
+                                      'Save downloaded media to your gallery',
+                                  isCompleted: false,
+                                ),
+                                const SizedBox(height: 16),
+                                _buildPermissionItem(
+                                  icon: Icons.folder_open,
+                                  title: 'Akses Semua File',
+                                  description:
+                                      'Aplikasi akan dapat membaca, memodifikasi, dan menghapus semua file di ponsel ini atau perangkat penyimpanan yang tersambung',
                                   isCompleted: false,
                                 ),
                                 const SizedBox(height: 16),
@@ -370,32 +376,8 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
           Navigator.of(context).pushReplacementNamed(Routes.downloader);
         }
 
-        // Check for updates after ensuring navigation is completely done
-        // Increased delays to ensure the downloader screen is fully loaded and stable
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) {
-            _updateService.triggerUpdateCheck();
-            developer.log('Manual update check triggered after permission setup (3s delay)',
-                name: 'PermissionSetupScreen');
-          }
-        });
-        
-        // Add additional retry attempts with longer delays
-        Future.delayed(const Duration(seconds: 6), () {
-          if (mounted) {
-            _updateService.triggerUpdateCheck();
-            developer.log('Retry update check #1 after permission setup (6s delay)',
-                name: 'PermissionSetupScreen');
-          }
-        });
-        
-        Future.delayed(const Duration(seconds: 10), () {
-          if (mounted) {
-            _updateService.triggerUpdateCheck();
-            developer.log('Retry update check #2 after permission setup (10s delay)',
-                name: 'PermissionSetupScreen');
-          }
-        });
+        // No need for manual update checks here - MyApp.markPermissionSetupCompleted()
+        // is called by PermissionService and will handle update checking automatically
       } else if (result == false) {
         // This means user actually tried permissions but some were denied
         developer.log('Some permissions denied', name: 'PermissionSetupScreen');
@@ -425,15 +407,8 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
         if (mounted) {
           Navigator.of(context).pushReplacementNamed(Routes.downloader);
         }
-        
-        // Also delay update checks for denied permissions case
-        Future.delayed(const Duration(seconds: 4), () {
-          if (mounted) {
-            _updateService.triggerUpdateCheck();
-            developer.log('Update check after permission denial (4s delay)',
-                name: 'PermissionSetupScreen');
-          }
-        });
+
+        // No manual update check needed - handled by MyApp callback
       }
       // If result is null, user cancelled - do nothing, stay on permission screen
     } catch (e) {
@@ -461,15 +436,8 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
       if (mounted) {
         Navigator.of(context).pushReplacementNamed(Routes.downloader);
       }
-      
-      // Also delay update check for error case
-      Future.delayed(const Duration(seconds: 4), () {
-        if (mounted) {
-          _updateService.triggerUpdateCheck();
-          developer.log('Update check after permission error (4s delay)',
-              name: 'PermissionSetupScreen');
-        }
-      });
+
+      // No manual update check needed - handled by MyApp callback
     } finally {
       if (mounted) {
         setState(() {

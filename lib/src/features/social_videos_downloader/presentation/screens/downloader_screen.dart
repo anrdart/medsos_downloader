@@ -2,11 +2,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:anr_saver/src/core/common_widgets/circular_loader_with_overlay.dart';
+import 'package:anr_saver/src/core/utils/app_strings.dart';
+import 'package:anr_saver/src/core/providers/language_provider.dart';
 import '../../../../config/routes_manager.dart';
 import '../bloc/downloader_bloc/downloader_bloc.dart';
-import '../widgets/downloader_Screen/downloader_screen_body.dart';
-import '../widgets/downloader_Screen/downloader_screen_bottom_app_bar.dart';
+import '../widgets/downloader_screen/downloader_screen_body.dart';
+import '../widgets/downloader_screen/downloader_screen_bottom_app_bar.dart';
 
 class DownloaderScreen extends StatefulWidget {
   const DownloaderScreen({super.key});
@@ -37,162 +40,168 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                  offset: Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.blue, Colors.purple],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+        return Consumer<LanguageProvider>(
+          builder: (context, languageProvider, child) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
                     ),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.favorite, color: Colors.white, size: 24),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Support Developer',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'Help keep this app free & updated',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-
-                // Content
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Scan QRIS Code',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[800],
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.blue, Colors.purple],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Use any Indonesian e-wallet or mobile banking app',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 20),
-
-                      // QRIS Image
-                      Container(
-                        width: 280,
-                        height: 280,
-                        decoration: BoxDecoration(
-                          border:
-                              Border.all(color: Colors.grey[300]!, width: 2),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(13),
-                          child: Image.asset(
-                            'assets/donate/donate.jpg',
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey[100],
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.error_outline,
-                                        color: Colors.grey[400], size: 40),
-                                    const SizedBox(height: 10),
-                                    Text('QRIS image not found',
-                                        style:
-                                            TextStyle(color: Colors.grey[600])),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Supported apps
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 8,
+                      child: Row(
                         children: [
-                          _buildPaymentChip('GoPay'),
-                          _buildPaymentChip('OVO'),
-                          _buildPaymentChip('DANA'),
-                          _buildPaymentChip('ShopeePay'),
-                          _buildPaymentChip('LinkAja'),
-                          _buildPaymentChip('Bank Apps'),
+                          const Icon(Icons.favorite,
+                              color: Colors.white, size: 24),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppStrings.supportDeveloper,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  AppStrings.helpKeepAppFree,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
                         ],
                       ),
+                    ),
 
-                      const SizedBox(height: 20),
+                    // Content
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          Text(
+                            AppStrings.scanQrisCode,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            AppStrings.useIndonesianEWallet,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
 
-                      Text(
-                        '❤️ Thank you for your support! ❤️',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[700],
-                        ),
-                        textAlign: TextAlign.center,
+                          // QRIS Image
+                          Container(
+                            width: 280,
+                            height: 280,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                  color: Colors.grey[300]!, width: 2),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(13),
+                              child: Image.asset(
+                                'assets/donate/donate.jpg',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey[100],
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.error_outline,
+                                            color: Colors.grey[400], size: 40),
+                                        const SizedBox(height: 10),
+                                        Text(AppStrings.qrisImageNotFound,
+                                            style: TextStyle(
+                                                color: Colors.grey[600])),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Supported apps
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 8,
+                            children: [
+                              _buildPaymentChip('GoPay'),
+                              _buildPaymentChip('OVO'),
+                              _buildPaymentChip('DANA'),
+                              _buildPaymentChip('ShopeePay'),
+                              _buildPaymentChip('LinkAja'),
+                              _buildPaymentChip('Bank Apps'),
+                            ],
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          Text(
+                            AppStrings.thankYouSupport,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[700],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

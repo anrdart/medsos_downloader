@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:android_intent_plus/android_intent.dart';
 import 'dart:developer' as developer;
+import '../../my_app.dart';
 
 class PermissionService {
   static const String _permissionsGrantedKey = 'permissions_granted';
@@ -59,6 +60,10 @@ class PermissionService {
       bool storageGranted = await _requestStoragePermissions(context);
       if (!storageGranted) return false;
 
+      // Request "Akses Semua File" permission (Manage External Storage)
+      bool allFilesGranted = await _requestAllFilesPermission(context);
+      if (!allFilesGranted) return false;
+
       // Request install unknown apps permission
       bool installGranted = await _requestInstallPermission(context);
       if (!installGranted) return false;
@@ -72,6 +77,9 @@ class PermissionService {
 
       // Show completion dialog
       await _showCompletionDialog(context);
+
+      // Notify MyApp that permission setup is completed
+      MyApp.markPermissionSetupCompleted();
 
       developer.log('All permissions setup completed',
           name: 'PermissionService');
@@ -118,8 +126,13 @@ class PermissionService {
                   SizedBox(height: 16),
                   _PermissionItem(
                     icon: Icons.folder,
-                    title: 'Storage Access',
-                    description: 'Save downloaded videos to your device',
+                    title: 'Gallery Access',
+                    description: 'Save downloaded media to your gallery',
+                  ),
+                  _PermissionItem(
+                    icon: Icons.folder_open,
+                    title: 'Akses Semua File',
+                    description: 'Akses penuh ke semua file dan folder',
                   ),
                   _PermissionItem(
                     icon: Icons.install_mobile,
@@ -182,9 +195,9 @@ class PermissionService {
     return await _showPermissionDialog(
       context,
       icon: Icons.folder,
-      title: 'Storage Permission',
+      title: 'Gallery Permission',
       description:
-          'ANR Saver needs access to your device storage to save downloaded videos.',
+          'ANR Saver needs access to your device gallery to save downloaded videos.',
       onRequest: () async {
         // For Android 13+ (API 33+), request specific media permissions
         var status = await Permission.videos.request();
@@ -199,6 +212,21 @@ class PermissionService {
           status = await Permission.manageExternalStorage.request();
         }
 
+        return status.isGranted;
+      },
+    );
+  }
+
+  // Request "Akses Semua File" permission (Manage External Storage)
+  Future<bool> _requestAllFilesPermission(BuildContext context) async {
+    return await _showPermissionDialog(
+      context,
+      icon: Icons.folder_open,
+      title: 'Akses Semua File',
+      description:
+          'ANR Saver memerlukan akses untuk membaca, memodifikasi, dan menghapus semua file di ponsel ini atau perangkat penyimpanan yang tersambung.',
+      onRequest: () async {
+        var status = await Permission.manageExternalStorage.request();
         return status.isGranted;
       },
     );

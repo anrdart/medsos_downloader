@@ -48,6 +48,10 @@ class UpdateService {
   Stream<DownloadProgress>? get downloadStream => _downloadController?.stream;
   Stream<UpdateStatus>? get statusStream => _statusController?.stream;
 
+  // Public getters to expose states for navigation safety checks
+  bool get isDownloading => _isDownloading;
+  bool get isInstalling => _isInstalling;
+
   bool _isInitialized = false;
   bool _isDownloading = false;
   bool _isInstalling = false;
@@ -244,10 +248,43 @@ class UpdateService {
     });
   }
 
+  DateTime? _lastDialogShownTime;
+  static const Duration _dialogCooldownDuration = Duration(minutes: 10);
+
   void _startRealTimeUpdateCheck() {
     _realTimeTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       try {
-        checkForUpdates(silent: false, realTime: true, forceShow: true);
+        // Don't perform real-time checks during download/installation to prevent dialog interruption
+        if (_isDownloading || _isInstalling) {
+          developer.log(
+            '🚫 Skipping real-time update check - download/installation in progress',
+            name: 'UpdateService',
+          );
+          return;
+        }
+
+        // Check if enough time has passed since last dialog
+        final now = DateTime.now();
+        final canShowDialog = _lastDialogShownTime == null ||
+            now.difference(_lastDialogShownTime!) >= _dialogCooldownDuration;
+
+        if (canShowDialog) {
+          // Allow dialog after cooldown period
+          developer.log(
+            '⏰ Real-time check: cooldown period passed, allowing dialog',
+            name: 'UpdateService',
+          );
+          checkForUpdates(silent: false, realTime: true, forceShow: false);
+        } else {
+          // Still in cooldown - log remaining time
+          final timeSinceLastDialog = now.difference(_lastDialogShownTime!);
+          final remainingTime = _dialogCooldownDuration - timeSinceLastDialog;
+          developer.log(
+            '🔇 Real-time check: in cooldown period - ${remainingTime.inMinutes} minutes remaining',
+            name: 'UpdateService',
+          );
+          checkForUpdates(silent: true, realTime: true, forceShow: false);
+        }
       } catch (e) {
         developer.log(
           'Real-time update check failed: $e',
@@ -392,8 +429,35 @@ class UpdateService {
           DateTime.now().millisecondsSinceEpoch,
         );
 
-        // Emit update info to stream (only if not silent or it's a real-time check)
-        if (!silent || realTime || forceShow) {
+        // Don't emit to stream if download or installation is in progress
+        if (_isDownloading || _isInstalling) {
+          developer.log(
+            '🚫 Not emitting to stream - download/installation in progress',
+            name: 'UpdateService',
+          );
+          return updateInfo; // Return update info but don't trigger dialog
+        }
+
+        // For real-time checks, only emit if dialog cooldown has passed
+        if (realTime && !forceShow && !silent) {
+          final now = DateTime.now();
+          final canShowDialog = _lastDialogShownTime == null ||
+              now
+                      .difference(_lastDialogShownTime!)
+                      .compareTo(_dialogCooldownDuration) >=
+                  0;
+
+          if (!canShowDialog) {
+            developer.log(
+              '🔇 Real-time check: dialog cooldown active, not emitting to stream',
+              name: 'UpdateService',
+            );
+            return updateInfo; // Return update info but don't trigger dialog
+          }
+        }
+
+        // Emit update info to stream (only if not silent or it's a real-time check with forceShow)
+        if (!silent || forceShow) {
           _updateController?.add(updateInfo);
           developer.log(
             '📢 Emitted update info to stream (silent: $silent, realTime: $realTime, forceShow: $forceShow)',
@@ -804,6 +868,10 @@ class UpdateService {
       // The downloadUpdate method will now handle auto-installation
       await downloadUpdate(downloadUrl);
     } catch (error) {
+      // Reset states on any error to ensure navigation safety checks work correctly
+      _isDownloading = false;
+      _isInstalling = false;
+
       developer.log(
         'Download and install failed: $error',
         name: 'UpdateService',
@@ -813,6 +881,7 @@ class UpdateService {
       if (!error.toString().contains('cancelled')) {
         // Log error for non-cancellation cases
         developer.log('Actual download error: $error', name: 'UpdateService');
+        _statusController?.add(UpdateStatus.error);
       }
 
       rethrow;
@@ -824,7 +893,10 @@ class UpdateService {
       developer.log('Cancelling download...', name: 'UpdateService');
 
       _downloadCancelToken?.cancel('Download cancelled by user');
+
+      // Reset all download/installation states immediately
       _isDownloading = false;
+      _isInstalling = false;
 
       // Immediately set cancelled status
       _statusController?.add(UpdateStatus.cancelled);
@@ -912,9 +984,6 @@ class UpdateService {
       rethrow;
     }
   }
-
-  bool get isDownloading => _isDownloading;
-  bool get isInstalling => _isInstalling;
 
   void dispose() {
     _updateTimer?.cancel();
@@ -1056,6 +1125,24 @@ class UpdateService {
         name: 'UpdateService',
       );
     }
+  }
+
+  /// Mark that an update dialog was shown to start cooldown period
+  void markDialogShown() {
+    _lastDialogShownTime = DateTime.now();
+    developer.log(
+      'Update dialog shown, starting ${_dialogCooldownDuration.inMinutes}-minute cooldown period',
+      name: 'UpdateService',
+    );
+  }
+
+  /// Reset dialog cooldown to allow immediate showing
+  void resetDialogCooldown() {
+    _lastDialogShownTime = null;
+    developer.log(
+      'Dialog cooldown reset - dialogs can now be shown immediately',
+      name: 'UpdateService',
+    );
   }
 }
 

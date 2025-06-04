@@ -1,12 +1,13 @@
-import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:anr_saver/src/config/routes_manager.dart';
 import 'package:anr_saver/src/container_injector.dart';
 import 'package:anr_saver/src/core/utils/app_strings.dart';
 import 'package:anr_saver/src/core/services/update_service.dart';
 import 'package:anr_saver/src/core/widgets/update_dialog.dart';
+import 'package:anr_saver/src/core/providers/language_provider.dart';
 import 'package:anr_saver/src/features/social_videos_downloader/presentation/bloc/downloader_bloc/downloader_bloc.dart';
 import 'package:anr_saver/src/features/social_videos_downloader/presentation/bloc/theme_bloc/theme_bloc.dart';
 import 'dart:async';
@@ -20,6 +21,16 @@ class MyApp extends StatefulWidget {
 
   @override
   State<MyApp> createState() => _MyAppState();
+
+  // Static method to mark permission setup as completed
+  static void markPermissionSetupCompleted() {
+    _MyAppState._instance?._setPermissionSetupCompleted();
+  }
+
+  // Static method to trigger update check for debugging
+  static void triggerUpdateCheck() {
+    _MyAppState._instance?._triggerManualUpdateCheck();
+  }
 }
 
 class _MyAppState extends State<MyApp> {
@@ -34,10 +45,45 @@ class _MyAppState extends State<MyApp> {
   bool _isDialogOperationInProgress = false;
   final List<Timer> _activeTimers = []; // Track all active timers
   bool _dialogWasShown = false; // Track if dialog was ever shown
+  bool _permissionSetupCompleted =
+      false; // Track if permission setup is completed
+
+  // Static accessor for permission completion
+  static _MyAppState? _instance;
+
+  void _setPermissionSetupCompleted() {
+    _permissionSetupCompleted = true;
+    _lastDetectedRoute =
+        '/downloader'; // Clear route cache to force re-detection
+    _lastRouteDetectionTime = null;
+    developer.log(
+        '✅ Permission setup marked as completed! Clearing route cache.',
+        name: 'MyApp');
+
+    // Check for pending updates immediately
+    if (_pendingUpdateInfo != null) {
+      developer.log('🔄 Checking pending update after permission completion',
+          name: 'MyApp');
+      _checkPendingUpdate();
+    }
+  }
+
+  void _triggerManualUpdateCheck() {
+    developer.log('🔄 Manual update check triggered from external call',
+        name: 'MyApp');
+
+    // Reset dialog state to allow new dialog
+    _dialogWasShown = false;
+    _updateService.resetDialogCooldown();
+
+    // Trigger immediate update check
+    _updateService.triggerUpdateCheck();
+  }
 
   @override
   void initState() {
     super.initState();
+    _instance = this; // Set static instance reference
 
     developer.log('🎯 MyApp initState called', name: 'MyApp');
 
@@ -91,7 +137,7 @@ class _MyAppState extends State<MyApp> {
           name: 'MyApp');
 
       // Also trigger immediate update check
-      await _updateService.triggerUpdateCheck();
+      _updateService.triggerUpdateCheck();
     } catch (e) {
       developer.log('❌ Failed to setup update listeners: $e', name: 'MyApp');
       // Don't rethrow - let the app continue without update listeners
@@ -99,14 +145,50 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _handleUpdateDetected(UpdateInfo updateInfo) {
+    // Add debug logging for fresh install detection
+    final timeSinceStart =
+        DateTime.now().difference(_appStartTime ?? DateTime.now());
+    final isFreshInstall = timeSinceStart.inMinutes < 2;
+
+    developer.log(
+        '🔍 Update detected: ${updateInfo.versionName} | '
+        'TimeSinceStart: ${timeSinceStart.inMinutes}min | '
+        'IsFreshInstall: $isFreshInstall | '
+        'DialogWasShown: $_dialogWasShown | '
+        'OperationInProgress: $_isDialogOperationInProgress',
+        name: 'MyApp');
+
     // Atomic check and operation to prevent any race conditions
-    if (_isDialogOperationInProgress ||
-        _isUpdateDialogShowing ||
-        _dialogWasShown) {
+    if (_isDialogOperationInProgress || _isUpdateDialogShowing) {
       developer.log(
-          '⚠️ Dialog operation already in progress or completed, ignoring new update',
+          '⚠️ Dialog operation already in progress, ignoring new update',
           name: 'MyApp');
       return;
+    }
+
+    // For fresh installs, skip all cooldown checks and show immediately if safe
+    if (isFreshInstall) {
+      developer.log('🆕 Fresh install detected - bypassing cooldown checks',
+          name: 'MyApp');
+      // For fresh installs, reset dialog flag to allow showing
+      _dialogWasShown = false;
+    } else {
+      // For regular operation, check cooldown period
+      if (_dialogWasShown) {
+        final timeSinceLastDialog =
+            DateTime.now().difference(_appStartTime ?? DateTime.now());
+        if (timeSinceLastDialog.inMinutes < 10) {
+          developer.log(
+              '⏰ Real-time update ignored - dialog shown recently (${timeSinceLastDialog.inMinutes} min ago)',
+              name: 'MyApp');
+          return;
+        } else {
+          // Reset flag to allow new dialog
+          _dialogWasShown = false;
+          developer.log('✅ Cooldown period passed, allowing new update dialog',
+              name: 'MyApp');
+        }
+      }
     }
 
     _isDialogOperationInProgress = true;
@@ -142,10 +224,25 @@ class _MyAppState extends State<MyApp> {
 
   void _checkPendingUpdate() {
     // Atomic check to prevent concurrent operations
-    if (_isDialogOperationInProgress ||
-        _isUpdateDialogShowing ||
-        _dialogWasShown) {
+    if (_isDialogOperationInProgress || _isUpdateDialogShowing) {
       return;
+    }
+
+    // For fresh installs or after cooldown, allow pending updates to show
+    if (_dialogWasShown) {
+      final timeSinceStart =
+          DateTime.now().difference(_appStartTime ?? DateTime.now());
+      // Only block if dialog was shown recently AND app has been running for a while
+      if (timeSinceStart.inMinutes > 2) {
+        final timeSinceLastDialog =
+            DateTime.now().difference(_appStartTime ?? DateTime.now());
+        if (timeSinceLastDialog.inMinutes < 10) {
+          developer.log(
+              '⏰ Pending update ignored - dialog shown recently, in cooldown period',
+              name: 'MyApp');
+          return;
+        }
+      }
     }
 
     // Check for pending update after route change
@@ -169,7 +266,9 @@ class _MyAppState extends State<MyApp> {
 
           // Add a small delay to ensure the route transition is complete
           final timer = Timer(const Duration(milliseconds: 800), () {
-            if (mounted && !_isUpdateDialogShowing && !_dialogWasShown) {
+            if (mounted && !_isUpdateDialogShowing) {
+              // Allow pending updates to show regardless of _dialogWasShown
+              // because we already checked cooldown above
               _showUpdateDialogAtomic(updateInfo);
             }
           });
@@ -185,9 +284,29 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _showUpdateDialogAtomic(UpdateInfo updateInfo) {
+    // Check fresh install status for final decision
+    final timeSinceStart =
+        DateTime.now().difference(_appStartTime ?? DateTime.now());
+    final isFreshInstall = timeSinceStart.inMinutes < 2;
+
+    developer.log(
+        '🎬 Attempting to show dialog: ${updateInfo.versionName} | '
+        'IsFreshInstall: $isFreshInstall | '
+        'DialogWasShown: $_dialogWasShown | '
+        'IsShowing: $_isUpdateDialogShowing',
+        name: 'MyApp');
+
     // Final atomic check before showing dialog
-    if (_isUpdateDialogShowing || _dialogWasShown) {
-      developer.log('⚠️ Update dialog already showing or was shown, aborting',
+    if (_isUpdateDialogShowing) {
+      developer.log('⚠️ Update dialog already showing, aborting',
+          name: 'MyApp');
+      return;
+    }
+
+    // For fresh installs, always allow dialog to show
+    if (!isFreshInstall && _dialogWasShown) {
+      developer.log(
+          '⚠️ Update dialog was already shown and not fresh install, aborting',
           name: 'MyApp');
       return;
     }
@@ -226,6 +345,9 @@ class _MyAppState extends State<MyApp> {
     developer.log('🎬 Showing update dialog for: ${updateInfo.versionName}',
         name: 'MyApp');
 
+    // Mark dialog as shown to start cooldown period
+    _updateService.markDialogShown();
+
     // Check if widget is still mounted before showing dialog
     if (!mounted) {
       _isUpdateDialogShowing = false;
@@ -234,16 +356,47 @@ class _MyAppState extends State<MyApp> {
       return;
     }
 
-    showDialog(
-      context: context,
-      barrierDismissible: !updateInfo.isForced,
-      builder: (context) => UpdateDialog(
-        updateInfo: updateInfo,
-        updateService: _updateService,
-      ),
-    ).then((_) {
-      _isUpdateDialogShowing = false;
-      developer.log('🎬 Update dialog closed', name: 'MyApp');
+    // Show dialog immediately for fresh installs, with delay for others
+    final delayDuration = isFreshInstall
+        ? const Duration(milliseconds: 100)
+        : const Duration(milliseconds: 1000);
+
+    Future.delayed(delayDuration, () {
+      if (!mounted) {
+        _isUpdateDialogShowing = false;
+        return;
+      }
+
+      final ctx = navigatorKey.currentContext;
+      if (ctx == null || !ctx.mounted) {
+        developer.log('❌ No valid context for dialog', name: 'MyApp');
+        _isUpdateDialogShowing = false;
+        return;
+      }
+
+      try {
+        showDialog(
+          context: ctx,
+          barrierDismissible: !updateInfo.isForced,
+          useRootNavigator: true,
+          builder: (dialogContext) => PopScope(
+            canPop: !updateInfo.isForced,
+            child: UpdateDialog(
+              updateInfo: updateInfo,
+              updateService: _updateService,
+            ),
+          ),
+        ).then((_) {
+          _isUpdateDialogShowing = false;
+          developer.log('🎬 Update dialog closed', name: 'MyApp');
+        }).catchError((error) {
+          _isUpdateDialogShowing = false;
+          developer.log('❌ Update dialog error: $error', name: 'MyApp');
+        });
+      } catch (e) {
+        _isUpdateDialogShowing = false;
+        developer.log('❌ Failed to show dialog: $e', name: 'MyApp');
+      }
     });
   }
 
@@ -264,15 +417,22 @@ class _MyAppState extends State<MyApp> {
   void _resetDialogStateForMainApp() {
     // Reset dialog state when we know we're transitioning to main app
     // This allows update dialogs to be shown again after permission setup
-    if (_dialogWasShown && !_isUpdateDialogShowing) {
-      _dialogWasShown = false;
-      developer.log('🔄 Reset dialog state for main app transition',
-          name: 'MyApp');
-    }
+    _dialogWasShown = false;
+
+    // Also reset the cooldown to allow immediate showing after permission setup
+    _updateService.resetDialogCooldown();
+
+    developer.log('🔄 Reset dialog state and cooldown for main app transition',
+        name: 'MyApp');
   }
 
   @override
   void dispose() {
+    // Clear static instance reference
+    if (_instance == this) {
+      _instance = null;
+    }
+
     _updateSubscription?.cancel();
     _cancelAllTimers();
     super.dispose();
@@ -292,37 +452,32 @@ class _MyAppState extends State<MyApp> {
           developer.log('📱 DevicePreview builder called', name: 'MyApp');
 
           try {
-            developer.log('🎨 Creating AdaptiveTheme...', name: 'MyApp');
+            developer.log('🧱 Creating MultiBlocProvider...', name: 'MyApp');
 
-            return AdaptiveTheme(
-              light: ThemeState.lightTheme.themeData,
-              dark: ThemeState.darkTheme.themeData,
-              debugShowFloatingThemeButton: false,
-              initial: AdaptiveThemeMode.system,
-              builder: (theme, darkTheme) {
-                developer.log('🌈 AdaptiveTheme builder called', name: 'MyApp');
-
-                try {
-                  developer.log('🧱 Creating MultiBlocProvider...',
-                      name: 'MyApp');
-
-                  return MultiBlocProvider(
-                    providers: [
-                      BlocProvider<DownloaderBloc>(
-                        create: (context) {
-                          developer.log('⬇️ Creating DownloaderBloc',
-                              name: 'MyApp');
-                          return sl<DownloaderBloc>();
-                        },
-                      ),
-                      BlocProvider<ThemeBloc>(
-                        create: (context) {
-                          developer.log('🎭 Creating ThemeBloc', name: 'MyApp');
-                          return sl<ThemeBloc>();
-                        },
-                      ),
-                    ],
-                    child: BlocBuilder<ThemeBloc, ThemeState>(
+            return ChangeNotifierProvider<LanguageProvider>(
+              create: (context) {
+                developer.log('🌐 Creating LanguageProvider', name: 'MyApp');
+                return LanguageProvider();
+              },
+              child: MultiBlocProvider(
+                providers: [
+                  BlocProvider<DownloaderBloc>(
+                    create: (context) {
+                      developer.log('⬇️ Creating DownloaderBloc',
+                          name: 'MyApp');
+                      return sl<DownloaderBloc>();
+                    },
+                  ),
+                  BlocProvider<ThemeBloc>(
+                    create: (context) {
+                      developer.log('🎭 Creating ThemeBloc', name: 'MyApp');
+                      return sl<ThemeBloc>();
+                    },
+                  ),
+                ],
+                child: Consumer<LanguageProvider>(
+                  builder: (context, languageProvider, child) {
+                    return BlocBuilder<ThemeBloc, ThemeState>(
                       builder: (context, state) {
                         developer.log(
                             '🎨 Building MaterialApp with initialRoute: ${Routes.splash}',
@@ -336,8 +491,12 @@ class _MyAppState extends State<MyApp> {
                             navigatorKey: navigatorKey,
                             title: AppStrings.appName,
                             debugShowCheckedModeBanner: false,
-                            theme: theme,
-                            darkTheme: darkTheme,
+                            theme: state.themeData,
+                            darkTheme: ThemeState.darkTheme.themeData,
+                            themeMode:
+                                state.themeData.brightness == Brightness.dark
+                                    ? ThemeMode.dark
+                                    : ThemeMode.light,
                             initialRoute: Routes.splash,
                             onGenerateRoute: (settings) {
                               developer.log(
@@ -346,10 +505,17 @@ class _MyAppState extends State<MyApp> {
 
                               // Check for pending update after route change
                               WidgetsBinding.instance.addPostFrameCallback((_) {
+                                // Clear route cache when route changes
+                                _lastDetectedRoute = settings.name;
+                                _lastRouteDetectionTime = DateTime.now();
+
                                 _checkPendingUpdate();
 
                                 // Special handling for downloader route - only if no dialog was shown yet
                                 if (settings.name == '/downloader') {
+                                  // Mark permission setup as completed when we reach downloader
+                                  _setPermissionSetupCompleted();
+
                                   // Reset dialog state when transitioning to main app
                                   _resetDialogStateForMainApp();
 
@@ -372,17 +538,14 @@ class _MyAppState extends State<MyApp> {
                           rethrow;
                         }
                       },
-                    ),
-                  );
-                } catch (e) {
-                  developer.log('❌ Error creating MultiBlocProvider: $e',
-                      name: 'MyApp');
-                  rethrow;
-                }
-              },
+                    );
+                  },
+                ),
+              ),
             );
           } catch (e) {
-            developer.log('❌ Error creating AdaptiveTheme: $e', name: 'MyApp');
+            developer.log('❌ Error creating MultiBlocProvider: $e',
+                name: 'MyApp');
             rethrow;
           }
         },
@@ -424,66 +587,83 @@ class _MyAppState extends State<MyApp> {
     _activeTimers.addAll([timer1, timer2]);
   }
 
+  // Current route cache to avoid repeated expensive calls
+  String? _lastDetectedRoute;
+  DateTime? _lastRouteDetectionTime;
+
   // Helper method to get current route more robustly
   String? _getCurrentRoute() {
     try {
+      // Use cached result if recent (within 1 second)
+      final now = DateTime.now();
+      if (_lastRouteDetectionTime != null &&
+          _lastDetectedRoute != null &&
+          now.difference(_lastRouteDetectionTime!).inSeconds < 1) {
+        return _lastDetectedRoute;
+      }
+
       final context = navigatorKey.currentContext;
       if (context == null) return null;
+
+      String? detectedRoute;
 
       // Try to get the current route name from ModalRoute
       final route = ModalRoute.of(context);
       if (route?.settings.name != null) {
-        final routeName = route!.settings.name;
-        developer.log('🛣️ Route detection - found route: $routeName',
+        detectedRoute = route!.settings.name;
+        developer.log('🛣️ Route detection - found route: $detectedRoute',
             name: 'MyApp');
-        return routeName;
-      }
-
-      // Secondary method: try to get route from Navigator
-      try {
-        final navigator = Navigator.of(context);
-
-        // Check if we have any routes
-        if (navigator.canPop()) {
-          // Try to inspect the current route more carefully
-          // If we're here, we definitely have multiple routes in stack
-
-          // For now, let's be more conservative and only assume downloader
-          // if we've been running for a while (indicating we're past initial setup)
-          final now = DateTime.now();
-          if (_appStartTime != null) {
-            final timeSinceStart = now.difference(_appStartTime!);
-            if (timeSinceStart.inSeconds > 20) {
-              developer.log(
-                  '🛣️ Route detection - can pop + time based, assuming downloader',
-                  name: 'MyApp');
-              return '/downloader';
-            } else {
-              developer.log(
-                  '🛣️ Route detection - can pop but too early, might be permission setup',
-                  name: 'MyApp');
-              return '/permissionSetup'; // Conservative assumption during early app lifecycle
-            }
-          }
-
+      } else {
+        // Fallback: Check if we know permission setup was completed
+        if (_permissionSetupCompleted) {
+          detectedRoute = '/downloader';
           developer.log(
-              '🛣️ Route detection - can pop but no app start time, being conservative',
+              '🛣️ Route detection - using permission completion flag: /downloader',
               name: 'MyApp');
-          return null;
         } else {
-          developer.log(
-              '🛣️ Route detection - cannot pop, likely on initial route',
-              name: 'MyApp');
-          return '/splash'; // Likely on splash or initial route
+          // Try time-based detection as last resort
+          try {
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              final now = DateTime.now();
+              if (_appStartTime != null) {
+                final timeSinceStart = now.difference(_appStartTime!);
+                if (timeSinceStart.inSeconds > 20) {
+                  detectedRoute = '/permissionSetup';
+                  developer.log(
+                      '🛣️ Route detection - can pop + time (${timeSinceStart.inSeconds}s), likely permission setup',
+                      name: 'MyApp');
+                } else {
+                  detectedRoute = '/splash';
+                  developer.log(
+                      '🛣️ Route detection - can pop but early (${timeSinceStart.inSeconds}s), likely splash',
+                      name: 'MyApp');
+                }
+              } else {
+                detectedRoute = '/splash';
+              }
+            } else {
+              detectedRoute = '/splash';
+              developer.log(
+                  '🛣️ Route detection - cannot pop, on initial route (splash)',
+                  name: 'MyApp');
+            }
+          } catch (e) {
+            developer.log('🛣️ Route detection - navigator error: $e',
+                name: 'MyApp');
+            detectedRoute = '/splash';
+          }
         }
-      } catch (e) {
-        developer.log('🛣️ Route detection - navigator error: $e',
-            name: 'MyApp');
-        return null;
       }
+
+      // Cache the result
+      _lastDetectedRoute = detectedRoute;
+      _lastRouteDetectionTime = now;
+
+      return detectedRoute;
     } catch (e) {
       developer.log('⚠️ Error in _getCurrentRoute: $e', name: 'MyApp');
-      return null;
+      return _lastDetectedRoute ?? '/splash';
     }
   }
 
@@ -496,10 +676,24 @@ class _MyAppState extends State<MyApp> {
         return false;
       }
 
+      // Never show update dialog if permission setup hasn't been completed
+      if (!_permissionSetupCompleted) {
+        developer.log('🔴 Not safe: permission setup not completed yet',
+            name: 'MyApp');
+        return false;
+      }
+
+      // Check if update service is performing download/installation operations
+      if (_updateService.isDownloading || _updateService.isInstalling) {
+        developer.log('🔴 Not safe: download/installation in progress',
+            name: 'MyApp');
+        return false;
+      }
+
       // Get current route first
       final currentRoute = _getCurrentRoute();
 
-      // Explicitly check for permission setup route - never safe during permission setup
+      // Explicitly check for permission setup route - NEVER safe during permission setup
       if (currentRoute == '/permissionSetup') {
         developer.log('🔴 Not safe: currently in permission setup',
             name: 'MyApp');
@@ -519,29 +713,23 @@ class _MyAppState extends State<MyApp> {
         return true;
       }
 
-      // More conservative fallback checks
-      final navigator = Navigator.of(context);
-      final canPop = navigator.canPop();
-
-      // Enhanced time-based check - but only if we're certain we're not in permission setup
+      // If route is unknown/null, be extra conservative with time-based check
       final now = DateTime.now();
-      if (_appStartTime != null &&
-          currentRoute != '/permissionSetup' &&
-          currentRoute != '/splash') {
+      if (_appStartTime != null && currentRoute == null) {
         final timeSinceStart = now.difference(_appStartTime!);
 
-        // Only use time-based fallback if enough time has passed AND we can pop
-        // This indicates we're likely past the initial setup phase
-        if (timeSinceStart.inSeconds > 25 && canPop) {
+        // Only use time-based fallback if MUCH more time has passed
+        // This ensures user has definitely completed permission setup
+        if (timeSinceStart.inSeconds > 90) {
           developer.log(
-              '🟡 Safe to show dialog: time-based fallback (${timeSinceStart.inSeconds}s since start + canPop), route: $currentRoute',
+              '🟡 Safe to show dialog: very long time fallback (${timeSinceStart.inSeconds}s since start)',
               name: 'MyApp');
           return true;
         }
       }
 
       developer.log(
-          '🔴 Not safe to show dialog: canPop=$canPop, route=$currentRoute, conservative approach',
+          '🔴 Not safe to show dialog: route=$currentRoute, being conservative',
           name: 'MyApp');
       return false;
     } catch (e) {
@@ -591,13 +779,12 @@ class _MyAppState extends State<MyApp> {
             '🔄 Retry attempt ${i + 1}/${delays.length}: safe=$isSafe, route=$currentRoute',
             name: 'MyApp');
 
-        // Be more aggressive on later attempts
-        if (isSafe || (i >= 3 && _pendingUpdateInfo != null)) {
+        // Only show if truly safe - remove aggressive showing during permission setup
+        if (isSafe) {
           final updateInfo = _pendingUpdateInfo!;
           _clearPendingUpdate();
 
-          developer.log(
-              '✅ Showing pending update dialog after retry ${i + 1} (aggressive: ${i >= 3})',
+          developer.log('✅ Showing pending update dialog after retry ${i + 1}',
               name: 'MyApp');
 
           _showUpdateDialogAtomic(updateInfo);
@@ -607,43 +794,6 @@ class _MyAppState extends State<MyApp> {
       _activeTimers.add(timer);
     }
 
-    // Final fallback: Force show after 30 seconds regardless of safety check
-    final forceTimer = Timer(const Duration(seconds: 30), () {
-      // Check if retry is still needed
-      if (!mounted ||
-          _pendingUpdateInfo == null ||
-          _isUpdateDialogShowing ||
-          _dialogWasShown ||
-          !_isRetryScheduled) {
-        return;
-      }
-
-      developer.log('🚨 FORCE showing update dialog after 30s timeout',
-          name: 'MyApp');
-      final updateInfo = _pendingUpdateInfo!;
-      _clearPendingUpdate();
-
-      // Force show by directly calling showDialog without safety checks
-      final context = navigatorKey.currentContext;
-      if (context != null && mounted) {
-        _isUpdateDialogShowing = true;
-        _dialogWasShown = true;
-
-        // ignore: use_build_context_synchronously
-        showDialog(
-          // ignore: use_build_context_synchronously
-          context: context,
-          barrierDismissible: !updateInfo.isForced,
-          builder: (context) => UpdateDialog(
-            updateInfo: updateInfo,
-            updateService: _updateService,
-          ),
-        ).then((_) {
-          _isUpdateDialogShowing = false;
-          developer.log('🎬 Forced update dialog closed', name: 'MyApp');
-        });
-      }
-    });
-    _activeTimers.add(forceTimer);
+    // Note: Removed force timer to prevent bypass of safety checks during permission setup
   }
 }

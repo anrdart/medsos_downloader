@@ -209,10 +209,18 @@ class _UpdateDialogState extends State<UpdateDialog>
               ),
             );
 
-            // Wait a moment then close dialog
-            Future.delayed(const Duration(milliseconds: 1500), () {
+            // Wait a moment then close dialog gracefully
+            Future.delayed(const Duration(milliseconds: 1000), () {
               if (mounted && Navigator.canPop(context)) {
-                Navigator.of(context).pop();
+                try {
+                  Navigator.of(context).pop();
+                } catch (e) {
+                  // If pop fails, try to navigate back to downloader explicitly
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/downloader',
+                    (route) => false,
+                  );
+                }
               }
             });
           }
@@ -960,14 +968,11 @@ class _UpdateDialogState extends State<UpdateDialog>
                 children: [
                   Icon(Icons.download, size: 16),
                   SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      'Download & Install',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                  Text(
+                    'Download & Install',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
                     ),
                   ),
                 ],
@@ -1003,14 +1008,11 @@ class _UpdateDialogState extends State<UpdateDialog>
             children: [
               Icon(Icons.cancel, size: 16),
               SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  'Cancel Download',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                'Cancel Download',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
                 ),
               ),
             ],
@@ -1035,14 +1037,11 @@ class _UpdateDialogState extends State<UpdateDialog>
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
               SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  'Installing...',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                'Installing...',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
                 ),
               ),
             ],

@@ -5,6 +5,7 @@ import 'package:anr_saver/bloc_observer.dart';
 import 'package:anr_saver/src/container_injector.dart';
 import 'package:anr_saver/src/my_app.dart';
 import 'package:anr_saver/src/core/services/update_service.dart';
+import 'package:anr_saver/src/core/services/language_service.dart';
 import 'config/supabase_config.dart';
 import 'dart:io';
 import 'dart:developer' as developer;
@@ -23,6 +24,12 @@ void main() async {
     // Setup Bloc observer
     Bloc.observer = MyBlockObserver();
     developer.log('✅ Bloc observer setup completed', name: 'Main');
+
+    // Initialize Language Service
+    developer.log('🌐 Initializing language service...', name: 'Main');
+    await LanguageService.instance.initialize();
+    await LanguageService.instance.autoDetectLanguage();
+    developer.log('✅ Language service initialized', name: 'Main');
 
     // Initialize Supabase in background (non-blocking)
     developer.log('🌐 Starting Supabase initialization...', name: 'Main');

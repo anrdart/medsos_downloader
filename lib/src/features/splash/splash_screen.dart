@@ -2,10 +2,12 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:anr_saver/src/core/media_query.dart';
 import 'package:anr_saver/src/core/utils/app_strings.dart';
 import 'package:anr_saver/src/core/utils/styles_manager.dart';
 import 'package:anr_saver/src/core/services/permission_service.dart';
+import 'package:anr_saver/src/core/providers/language_provider.dart';
 import 'package:anr_saver/src/container_injector.dart';
 import '../../config/routes_manager.dart';
 import '../../core/utils/app_assets.dart';
@@ -223,92 +225,96 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor:
-          const Color(0xFF0D0D0D), // Dark background to prevent white flash
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1A1A1A),
-              Color(0xFF0D0D0D),
-            ],
-          ),
-        ),
-        child: FadeTransition(
-          opacity: _animation,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Center(
-                child: Container(
-                  width: context.width * 0.5,
-                  height: context.width * 0.5,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.primaryColor.withOpacity(0.1),
-                        AppColors.primaryColor.withOpacity(0.05),
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, child) {
+        return Scaffold(
+          backgroundColor:
+              const Color(0xFF0D0D0D), // Dark background to prevent white flash
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF1A1A1A),
+                  Color(0xFF0D0D0D),
+                ],
+              ),
+            ),
+            child: FadeTransition(
+              opacity: _animation,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Center(
+                    child: Container(
+                      width: context.width * 0.5,
+                      height: context.width * 0.5,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppColors.primaryColor.withOpacity(0.1),
+                            AppColors.primaryColor.withOpacity(0.05),
+                          ],
+                        ),
+                        border: Border.all(
+                          color: AppColors.primaryColor.withOpacity(0.3),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryColor.withOpacity(0.3),
+                            blurRadius: 30,
+                            spreadRadius: 8,
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(30),
+                      child: const Image(
+                        fit: BoxFit.contain,
+                        image: AssetImage(AppAssets.splashLogo),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: context.height * 0.05,
+                    child: Column(
+                      children: [
+                        Text(
+                          AppStrings.appName.toUpperCase(),
+                          style: getTitleStyle(
+                              fontSize: context.width * 0.06,
+                              color: AppColors.white),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(AppStrings.appSlogan,
+                            style: getRegularStyle(
+                                fontSize: context.width * 0.035,
+                                color: AppColors.white.withOpacity(0.8))),
+                        const SizedBox(height: 20),
+                        // Loading indicator
+                        SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primaryColor.withOpacity(0.8),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                    border: Border.all(
-                      color: AppColors.primaryColor.withOpacity(0.3),
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primaryColor.withOpacity(0.3),
-                        blurRadius: 30,
-                        spreadRadius: 8,
-                      ),
-                    ],
                   ),
-                  padding: const EdgeInsets.all(30),
-                  child: const Image(
-                    fit: BoxFit.contain,
-                    image: AssetImage(AppAssets.splashLogo),
-                  ),
-                ),
+                ],
               ),
-              Positioned(
-                bottom: context.height * 0.05,
-                child: Column(
-                  children: [
-                    Text(
-                      AppStrings.appName.toUpperCase(),
-                      style: getTitleStyle(
-                          fontSize: context.width * 0.06,
-                          color: AppColors.white),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(AppStrings.appSlogan,
-                        style: getRegularStyle(
-                            fontSize: context.width * 0.035,
-                            color: AppColors.white.withOpacity(0.8))),
-                    const SizedBox(height: 20),
-                    // Loading indicator
-                    SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primaryColor.withOpacity(0.8),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

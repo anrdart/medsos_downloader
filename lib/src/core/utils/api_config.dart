@@ -13,10 +13,19 @@ class ApiConfig {
     "82d775c9ecmsh73ca726f3ef3d89p1dd74bjsn9026c0720b5d",
   ];
 
-  /// Get current RapidAPI key (rotate between available keys)
+  /// Get current RapidAPI key (rotate between available keys with better distribution)
   static String get rapidApiKey {
     final now = DateTime.now();
-    final keyIndex = (now.minute ~/ 10) % rapidApiKeys.length;
+    // Rotate keys every 5 minutes to better distribute API load
+    final keyIndex = (now.minute ~/ 5) % rapidApiKeys.length;
+    return rapidApiKeys[keyIndex];
+  }
+
+  /// Get next available API key (for retry scenarios)
+  static String getAlternativeApiKey() {
+    final now = DateTime.now();
+    // Use different rotation for alternative key
+    final keyIndex = ((now.minute ~/ 5) + 1) % rapidApiKeys.length;
     return rapidApiKeys[keyIndex];
   }
 

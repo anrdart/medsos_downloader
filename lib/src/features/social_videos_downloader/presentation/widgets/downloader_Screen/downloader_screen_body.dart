@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anr_saver/src/core/media_query.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/presentation/widgets/downloader_Screen/downloader_screen_supported_platforms.dart';
+import 'package:anr_saver/src/features/social_videos_downloader/presentation/widgets/downloader_screen/downloader_screen_supported_platforms.dart';
+import 'package:anr_saver/src/features/social_videos_downloader/presentation/widgets/downloader_screen/language_switcher.dart';
 
 import '../../../../../config/routes_manager.dart';
 import '../../../../../core/common_widgets/app_background.dart';
@@ -11,7 +12,7 @@ import '../../../../../core/utils/app_enums.dart';
 import '../../bloc/downloader_bloc/downloader_bloc.dart';
 import 'bottom_sheet/downloader_bottom_sheet.dart';
 import 'downloader_screen_input_field.dart';
-import 'downloader_screen_appbar.dart';
+import 'appbar_downloader.dart';
 
 class DownloaderScreenBody extends StatefulWidget {
   const DownloaderScreenBody({super.key});
@@ -92,6 +93,8 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
                               ),
                               SizedBox(height: context.height * 0.03),
                               const DownloaderScreenSupportedPlatforms(),
+                              SizedBox(height: context.height * 0.025),
+                              const LanguageSwitcher(),
                             ],
                           ),
                         ),
