@@ -1,50 +1,56 @@
 import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionsHelper {
+  static int? _sdkVersion;
+
+  static Future<int> _getAndroidSdkVersion() async {
+    if (_sdkVersion != null) return _sdkVersion!;
+    final info = await DeviceInfoPlugin().androidInfo;
+    _sdkVersion = info.version.sdkInt;
+    return _sdkVersion!;
+  }
+
   static Future<bool> checkPermission() async {
-    if (Platform.isAndroid) {
-      // For Android 11+ (API 30+), we need different permission handling
-      if (await _isAndroid11OrHigher()) {
-        // Check for MANAGE_EXTERNAL_STORAGE permission for Android 11+
-        final manageStatus = await Permission.manageExternalStorage.status;
-        if (manageStatus.isGranted) {
-          return true;
-        }
+    if (!Platform.isAndroid) return true;
 
-        // Request MANAGE_EXTERNAL_STORAGE permission
-        final requestResult = await Permission.manageExternalStorage.request();
-        if (requestResult.isGranted) {
-          return true;
-        }
+    final sdk = await _getAndroidSdkVersion();
 
-        // Fallback to regular storage permissions
-        return await _requestRegularStoragePermissions();
-      } else {
-        // For Android 10 and below
-        return await _requestRegularStoragePermissions();
-      }
+    if (sdk >= 33) {
+      // Android 13+ : need granular media permissions
+      final videoStatus = await Permission.videos.status;
+      final photoStatus = await Permission.photos.status;
+
+      if (videoStatus.isGranted && photoStatus.isGranted) return true;
+
+      final results = await [
+        Permission.videos,
+        Permission.photos,
+      ].request();
+
+      return (results[Permission.videos]?.isGranted ?? false) ||
+          (results[Permission.photos]?.isGranted ?? false);
+    } else if (sdk >= 30) {
+      // Android 11-12: MANAGE_EXTERNAL_STORAGE or scoped storage
+      final manageStatus = await Permission.manageExternalStorage.status;
+      if (manageStatus.isGranted) return true;
+
+      final result = await Permission.manageExternalStorage.request();
+      if (result.isGranted) return true;
+
+      return await _requestLegacyStorage();
+    } else {
+      // Android 10 and below
+      return await _requestLegacyStorage();
     }
-    return true; // For iOS and other platforms
   }
 
-  static Future<bool> _isAndroid11OrHigher() async {
-    // Android 11 is API level 30
-    return true; // Assume Android 11+ for safety
-  }
+  static Future<bool> _requestLegacyStorage() async {
+    final status = await Permission.storage.status;
+    if (status.isGranted) return true;
 
-  static Future<bool> _requestRegularStoragePermissions() async {
-    final storageStatus = await Permission.storage.status;
-    final photosStatus = await Permission.photos.status;
-
-    if (storageStatus.isGranted || photosStatus.isGranted) {
-      return true;
-    }
-
-    // Request storage permissions
-    final storageResult = await Permission.storage.request();
-    final photosResult = await Permission.photos.request();
-
-    return storageResult.isGranted || photosResult.isGranted;
+    final result = await Permission.storage.request();
+    return result.isGranted;
   }
 }

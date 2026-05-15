@@ -6,7 +6,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:android_intent_plus/android_intent.dart';
 import 'dart:developer' as developer;
-import '../../my_app.dart';
 
 class PermissionService {
   static const String _permissionsGrantedKey = 'permissions_granted';
@@ -78,8 +77,7 @@ class PermissionService {
       // Show completion dialog
       await _showCompletionDialog(context);
 
-      // Notify MyApp that permission setup is completed
-      MyApp.markPermissionSetupCompleted();
+      // Permission setup completed
 
       developer.log('All permissions setup completed',
           name: 'PermissionService');

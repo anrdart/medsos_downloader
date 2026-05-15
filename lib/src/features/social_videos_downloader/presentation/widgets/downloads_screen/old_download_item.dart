@@ -7,8 +7,8 @@ import 'package:path/path.dart' as path;
 import '../../../../../core/utils/app_assets.dart';
 import '../../../../../core/utils/app_colors.dart';
 import '../../../../../config/routes_manager.dart';
-import '../../../../../core/helpers/dir_helper.dart';
 import '../../../domain/entities/video_item.dart';
+import 'save_to_gallery_dialog.dart';
 
 class OldDownloadItem extends StatelessWidget {
   final VideoItem videoItem;
@@ -32,12 +32,26 @@ class OldDownloadItem extends StatelessWidget {
                 color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Image.asset(
-                AppAssets.noInternetImage,
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-              ),
+              child: videoItem.thumbnailPath != null &&
+                      File(videoItem.thumbnailPath!).existsSync()
+                  ? Image.file(
+                      File(videoItem.thumbnailPath!),
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Image.asset(
+                        AppAssets.noInternetImage,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : Image.asset(
+                      AppAssets.noInternetImage,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
           const SizedBox(width: 10),
@@ -192,42 +206,8 @@ class OldDownloadItem extends StatelessWidget {
     return 'Unknown time';
   }
 
-  void _saveToGallery(BuildContext context, String videoPath) async {
-    try {
-      await DirHelper.saveVideoToGallery(videoPath);
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: AppColors.white),
-                SizedBox(width: 8),
-                Text("Video saved to gallery successfully!"),
-              ],
-            ),
-            backgroundColor: AppColors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error, color: AppColors.white),
-                const SizedBox(width: 8),
-                Text("Failed to save to gallery: ${e.toString()}"),
-              ],
-            ),
-            backgroundColor: AppColors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    }
+  void _saveToGallery(BuildContext context, String videoPath) {
+    SaveToGalleryDialog.show(context, videoPath);
   }
 
   Widget _buildActionButton(BuildContext context,

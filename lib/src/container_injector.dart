@@ -4,6 +4,7 @@ import 'core/api/interceptors.dart';
 import 'core/helpers/dio_helper.dart';
 import 'core/services/update_service.dart';
 import 'core/services/permission_service.dart';
+import 'features/cookie_auth/cookie_auth_injector.dart';
 import 'features/social_videos_downloader/downloader_injector.dart';
 
 final sl = GetIt.instance;
@@ -28,7 +29,7 @@ void initCore() {
     () => DioHelper(dio: sl<Dio>()),
   );
 
-  // Update Service - now using Supabase
+  // Update Service - Firebase Remote Config
   sl.registerLazySingleton(() => UpdateService());
 
   // Permission Service
@@ -51,4 +52,7 @@ void initApp() {
 
   // Init downloader Bloc
   initDownloader();
+
+  // Init cookie auth
+  initCookieAuth();
 }

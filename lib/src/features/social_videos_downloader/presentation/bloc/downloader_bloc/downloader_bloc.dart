@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -41,17 +40,13 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     on<DownloaderDeleteDownload>(_deleteDownload);
     on<DownloaderRetryDownload>(_retryDownload);
 
-    // Load download history on initialization
     add(LoadDownloadHistory());
   }
 
   List<DownloadItem> newDownloads = [];
 
-  // Track active downloads for pause/resume functionality
-  Map<String, bool> pausedDownloads = {};
-
-  // Track active download cancel tokens for proper cancellation
-  Map<String, CancelToken> activeDownloads = {};
+  // CancelToken per download path - used for actual HTTP cancellation
+  final Map<String, CancelToken> _cancelTokens = {};
 
   Future<void> _getVideo(
     DownloaderGetVideo event,
@@ -80,9 +75,7 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
         .link;
     final path = await _getPathById(event.video.rId,
         quality: event.selectedLink, originalLink: selectedLink);
-    final link = _processLink(selectedLink);
 
-    // Detect platform and extract video title
     final platform = DownloadItem.detectPlatform(event.video.srcUrl);
     final videoTitle = _extractVideoTitle(event.video.title);
 
@@ -99,29 +92,25 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
 
     int index = _checkIfItemIsExistInDownloads(item);
     _addItem(index, item);
-    await _saveDownloadHistory(); // Save to persistent storage
+    await _saveDownloadHistory();
     emit(const DownloaderSaveVideoLoading());
 
-    // Create optimized progress callback for real-time updates
+    // Create CancelToken for this download
+    final cancelToken = CancelToken();
+    _cancelTokens[path] = cancelToken;
+
+    // Progress callback - no broken checks, just throttle by time
     DateTime? lastProgressUpdate;
     void onProgressUpdate(int received, int total) {
-      // Check if download was paused or cancelled
-      if (pausedDownloads.containsKey(path) ||
-          !activeDownloads.containsKey(path)) {
-        return; // Stop progress updates if paused or cancelled
-      }
-
       if (total > 0) {
-        // Throttle progress updates to prevent UI blocking
         final now = DateTime.now();
         if (lastProgressUpdate != null &&
-            now.difference(lastProgressUpdate!).inMilliseconds < 100) {
-          return; // Skip update if less than 100ms since last update
+            now.difference(lastProgressUpdate!).inMilliseconds < 200) {
+          return;
         }
         lastProgressUpdate = now;
 
         double progress = (received / total) * 100;
-        // Ensure progress doesn't exceed 100% and minimum 1% when started
         progress = progress.clamp(1.0, 99.0);
 
         _updateItem(
@@ -131,67 +120,79 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
               progress: progress,
             ));
 
-        // Save progress periodically (every 10%)
         if (progress % 10 < 1) {
           _saveDownloadHistory();
         }
 
-        // Emit state update for UI refresh
         emit(DownloaderSaveVideoProgress(progress: progress, path: path));
       }
     }
 
     SaveVideoParams params = SaveVideoParams(
       savePath: path,
-      videoLink: link,
+      videoLink: selectedLink,
+      cancelToken: cancelToken,
       onReceiveProgress: onProgressUpdate,
     );
 
     final result = await saveVideoUseCase.call(params);
+    _cancelTokens.remove(path);
+
     result.fold(
       (failure) {
+        // Don't mark as error if it was cancelled (paused)
+        if (cancelToken.isCancelled) return;
+
         _updateItem(
             index,
             item.copyWith(
               status: DownloadStatus.error,
               progress: 0.0,
             ));
-        _saveDownloadHistory(); // Save error state
+        _saveDownloadHistory();
         emit(DownloaderSaveVideoFailure(failure.message));
       },
-      (right) {
+      (right) async {
+        String? thumbPath;
+        if (!_isImageUrl(path)) {
+          thumbPath = await _generateThumbnail(path);
+        }
+
         _updateItem(
             index,
             item.copyWith(
               status: DownloadStatus.success,
               progress: 100.0,
+              thumbnailPath: thumbPath,
             ));
-        _saveDownloadHistory(); // Save success state
+        _saveDownloadHistory();
         emit(DownloaderSaveVideoSuccess(message: right, path: path));
       },
     );
   }
 
-  String _processLink(String link) {
-    // Check if it's an image link (for RedNote)
-    if (_isImageUrl(link)) {
-      return link; // Don't add .mp4 for images
+  Future<String?> _generateThumbnail(String videoPath) async {
+    try {
+      final thumb = await VideoThumbnail.thumbnailFile(
+        video: videoPath,
+        thumbnailPath: (await getTemporaryDirectory()).path,
+        imageFormat: ImageFormat.PNG,
+        quality: 50,
+        maxWidth: 200,
+      );
+      return thumb;
+    } catch (_) {
+      return null;
     }
-
-    bool isCorrectLink = link.endsWith(".mp4");
-    if (!isCorrectLink) link += ".mp4";
-    return link;
   }
 
   Future<String> _getPathById(String id,
       {String? quality, String? originalLink}) async {
     final appPath = await DirHelper.getAppPath();
 
-    // Determine file extension based on content type
-    String extension = ".mp4"; // default for videos
+    String extension = ".mp4";
 
     if (originalLink != null && _isImageUrl(originalLink)) {
-      // For RedNote images, use appropriate extension
       if (originalLink.toLowerCase().contains('.jpg') ||
           originalLink.toLowerCase().contains('.jpeg')) {
         extension = ".jpg";
@@ -200,11 +201,10 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
       } else if (originalLink.toLowerCase().contains('.webp')) {
         extension = ".webp";
       } else {
-        extension = ".jpg"; // default for images
+        extension = ".jpg";
       }
     }
 
-    // Add quality suffix for multiple files from same source (RedNote galleries)
     String filename = id;
     if (quality != null && quality.startsWith("Image")) {
       filename = "${id}_${quality.replaceAll(' ', '_')}";
@@ -220,7 +220,7 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
         url.toLowerCase().contains('.webp');
   }
 
-  _updateItem(int index, DownloadItem item) {
+  void _updateItem(int index, DownloadItem item) {
     if (index == -1) {
       newDownloads.last = item;
     } else {
@@ -228,7 +228,7 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     }
   }
 
-  _addItem(int index, DownloadItem item) {
+  void _addItem(int index, DownloadItem item) {
     if (index == -1) {
       newDownloads.add(item);
     } else {
@@ -277,25 +277,12 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
   }
 
   String _extractVideoTitle(String title) {
-    // Clean and extract meaningful title from video metadata
     if (title.isEmpty) return "Downloaded Video";
-
-    // Remove common social media patterns
-    String cleanTitle = title
-        .replaceAll(RegExp(r'#\w+'), '') // Remove hashtags
-        .replaceAll(RegExp(r'@\w+'), '') // Remove mentions
-        .replaceAll(RegExp(r'https?://\S+'), '') // Remove URLs
-        .trim();
-
-    // Limit title length for UI
-    if (cleanTitle.length > 50) {
-      cleanTitle = "${cleanTitle.substring(0, 47)}...";
-    }
-
-    return cleanTitle.isNotEmpty ? cleanTitle : "Downloaded Video";
+    // Only strip URLs, keep everything else (hashtags, mentions are part of title)
+    String clean = title.replaceAll(RegExp(r'https?://\S+'), '').trim();
+    return clean.isNotEmpty ? clean : "Downloaded Video";
   }
 
-  /// Load download history from persistent storage
   Future<void> _loadDownloadHistory(
     LoadDownloadHistory event,
     Emitter<DownloaderState> emit,
@@ -309,15 +296,12 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
         newDownloads =
             historyList.map((item) => DownloadItem.fromJson(item)).toList();
 
-        // Verify files still exist and update statuses
         for (int i = 0; i < newDownloads.length; i++) {
           final file = File(newDownloads[i].path);
           if (!file.existsSync()) {
-            // File was deleted externally, update status
             newDownloads[i] =
                 newDownloads[i].copyWith(status: DownloadStatus.error);
           } else if (newDownloads[i].status == DownloadStatus.downloading) {
-            // App was closed while downloading, mark as paused
             newDownloads[i] =
                 newDownloads[i].copyWith(status: DownloadStatus.paused);
           }
@@ -327,12 +311,10 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
         emit(DownloadHistoryLoaded(downloads: newDownloads));
       }
     } catch (e) {
-      // Handle error silently - start with empty history
       newDownloads = [];
     }
   }
 
-  /// Save download history to persistent storage
   Future<void> _saveDownloadHistory() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -340,11 +322,10 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
           json.encode(newDownloads.map((item) => item.toJson()).toList());
       await prefs.setString(_downloadHistoryKey, historyJson);
     } catch (e) {
-      // Handle error silently
+      // Silent
     }
   }
 
-  /// Pause video download
   Future<void> _pauseVideo(
     DownloaderPauseVideo event,
     Emitter<DownloaderState> emit,
@@ -352,7 +333,10 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     final index = newDownloads.indexWhere((item) => item.path == event.path);
     if (index != -1 &&
         newDownloads[index].status == DownloadStatus.downloading) {
-      pausedDownloads[event.path] = true;
+      // Cancel the actual HTTP request
+      _cancelTokens[event.path]?.cancel("Paused by user");
+      _cancelTokens.remove(event.path);
+
       _updateItem(
           index, newDownloads[index].copyWith(status: DownloadStatus.paused));
       await _saveDownloadHistory();
@@ -360,23 +344,18 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     }
   }
 
-  /// Resume video download
   Future<void> _resumeVideo(
     DownloaderResumeVideo event,
     Emitter<DownloaderState> emit,
   ) async {
     final index = newDownloads.indexWhere((item) => item.path == event.path);
     if (index != -1 && newDownloads[index].status == DownloadStatus.paused) {
-      pausedDownloads.remove(event.path);
-
-      // Restart download from current progress
       final item = newDownloads[index];
       add(DownloaderSaveVideo(
           video: item.video, selectedLink: item.selectedLink));
     }
   }
 
-  /// Delete download from history and optionally from disk
   Future<void> _deleteDownload(
     DownloaderDeleteDownload event,
     Emitter<DownloaderState> emit,
@@ -386,21 +365,19 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
       if (index != -1) {
         final item = newDownloads[index];
 
-        // Remove from list
+        // Cancel active download if running
+        if (item.status == DownloadStatus.downloading) {
+          _cancelTokens[event.path]?.cancel("Deleted by user");
+          _cancelTokens.remove(event.path);
+        }
+
         newDownloads.removeAt(index);
 
-        // Delete file if requested and exists
         if (event.deleteFile) {
           final file = File(event.path);
           if (file.existsSync()) {
             await file.delete();
           }
-        }
-
-        // Cancel if currently downloading
-        if (item.status == DownloadStatus.downloading) {
-          pausedDownloads[event.path] =
-              true; // This will signal download to stop
         }
 
         await _saveDownloadHistory();
@@ -412,7 +389,6 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     }
   }
 
-  /// Retry failed download
   Future<void> _retryDownload(
     DownloaderRetryDownload event,
     Emitter<DownloaderState> emit,
@@ -421,12 +397,10 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     if (index != -1) {
       final item = newDownloads[index];
 
-      // Reset progress and status
       _updateItem(index,
           item.copyWith(status: DownloadStatus.downloading, progress: 0.0));
       await _saveDownloadHistory();
 
-      // Restart download
       add(DownloaderSaveVideo(
           video: item.video, selectedLink: item.selectedLink));
     }

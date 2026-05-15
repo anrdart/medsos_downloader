@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "736747704159",
+    "project_id": "anrsaver",
+    "storage_bucket": "anrsaver.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:736747704159:android:009f7ec110c0367d5b30ea",
+        "android_client_info": {
+          "package_name": "com.ekalliptus.anrsaver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_xTjdbOjePwng16h7hJctWTLVxvVyfMk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

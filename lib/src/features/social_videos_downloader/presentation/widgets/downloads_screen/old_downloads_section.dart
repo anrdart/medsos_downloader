@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../../core/utils/app_constants.dart';
 import '../../../domain/entities/video_item.dart';
 import '../../bloc/downloader_bloc/downloader_bloc.dart';
 import '../../screens/downloads_screen.dart';
-import '../../../domain/entities/download_item.dart';
 import 'old_download_item.dart';
 
 class OldDownloadsSection extends StatefulWidget {

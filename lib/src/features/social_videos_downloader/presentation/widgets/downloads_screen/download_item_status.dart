@@ -6,11 +6,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../config/routes_manager.dart';
 import '../../../../../core/utils/app_colors.dart';
+import '../../../../../core/utils/app_constants.dart';
 import '../../../../../core/utils/app_enums.dart';
 import '../../../../../core/utils/app_strings.dart';
-import '../../../../../core/helpers/dir_helper.dart';
 import '../../../domain/entities/download_item.dart';
 import '../../bloc/downloader_bloc/downloader_bloc.dart';
+import 'save_to_gallery_dialog.dart';
 import 'video_status_widget.dart';
 
 class DownloadItemStatus extends StatelessWidget {
@@ -310,42 +311,37 @@ class DownloadItemStatus extends StatelessWidget {
     }
   }
 
+  static const Map<SocialPlatform, Color> _platformColors = {
+    SocialPlatform.tiktok: Colors.black,
+    SocialPlatform.instagram: Colors.pink,
+    SocialPlatform.facebook: Colors.blue,
+    SocialPlatform.youtube: Colors.red,
+    SocialPlatform.twitter: Color(0xFF1DA1F2),
+    SocialPlatform.reddit: Color(0xFFFF4500),
+    SocialPlatform.pinterest: Color(0xFFBD081C),
+    SocialPlatform.snapchat: Color(0xFFFFFC00),
+    SocialPlatform.bluesky: Color(0xFF0085FF),
+    SocialPlatform.twitch: Color(0xFF9146FF),
+    SocialPlatform.vimeo: Color(0xFF1AB7EA),
+    SocialPlatform.soundcloud: Color(0xFFFF5500),
+    SocialPlatform.tumblr: Color(0xFF35465C),
+    SocialPlatform.bilibili: Color(0xFF00A1D6),
+    SocialPlatform.dailymotion: Color(0xFF0066DC),
+    SocialPlatform.vk: Color(0xFF4C75A3),
+    SocialPlatform.ok: Color(0xFFEE8208),
+    SocialPlatform.rutube: Color(0xFF1B1B1B),
+    SocialPlatform.loom: Color(0xFF625DF5),
+    SocialPlatform.streamable: Color(0xFF0B6AED),
+    SocialPlatform.newgrounds: Color(0xFFFDA238),
+    SocialPlatform.unknown: Colors.grey,
+  };
+
   Color _getPlatformColor(SocialPlatform platform) {
-    switch (platform) {
-      case SocialPlatform.tiktok:
-        return Colors.black;
-      case SocialPlatform.instagram:
-        return Colors.pink;
-      case SocialPlatform.facebook:
-        return Colors.blue;
-      case SocialPlatform.youtube:
-        return Colors.red;
-      case SocialPlatform.rednote:
-        return Colors.red.shade600;
-      case SocialPlatform.snapchat:
-        return Colors.yellow.shade600;
-      case SocialPlatform.unknown:
-        return Colors.grey;
-    }
+    return _platformColors[platform] ?? Colors.grey;
   }
 
   String _getPlatformName(SocialPlatform platform) {
-    switch (platform) {
-      case SocialPlatform.tiktok:
-        return "TikTok";
-      case SocialPlatform.instagram:
-        return "Instagram";
-      case SocialPlatform.facebook:
-        return "Facebook";
-      case SocialPlatform.youtube:
-        return "YouTube";
-      case SocialPlatform.rednote:
-        return "RedNote";
-      case SocialPlatform.snapchat:
-        return "Snapchat";
-      case SocialPlatform.unknown:
-        return "Unknown";
-    }
+    return DownloadItem.platformNameOf(platform);
   }
 
   String _formatDownloadTime(DateTime time) {
@@ -383,42 +379,8 @@ class DownloadItemStatus extends StatelessWidget {
     return 'Calculating...';
   }
 
-  void _saveToGallery(BuildContext context, String videoPath) async {
-    try {
-      await DirHelper.saveVideoToGallery(videoPath);
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: AppColors.white),
-                SizedBox(width: 8),
-                Text("Video saved to gallery successfully!"),
-              ],
-            ),
-            backgroundColor: AppColors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error, color: AppColors.white),
-                const SizedBox(width: 8),
-                Text("Failed to save to gallery: ${e.toString()}"),
-              ],
-            ),
-            backgroundColor: AppColors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    }
+  void _saveToGallery(BuildContext context, String videoPath) {
+    SaveToGalleryDialog.show(context, videoPath);
   }
 
   void _showDeleteConfirmation(BuildContext context, DownloadItem item) {
@@ -502,3 +464,4 @@ class _IconOnlyButton extends StatelessWidget {
     );
   }
 }
+

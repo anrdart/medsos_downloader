@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/utils/app_colors.dart';
+import '../../../../core/utils/app_constants.dart';
 import '../../../../core/utils/styles_manager.dart';
 import '../../../../core/utils/app_strings.dart';
 import '../../../../core/providers/language_provider.dart';
@@ -268,21 +269,6 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   }
 
   String _getPlatformName(SocialPlatform platform) {
-    switch (platform) {
-      case SocialPlatform.tiktok:
-        return 'TikTok';
-      case SocialPlatform.instagram:
-        return 'Instagram';
-      case SocialPlatform.facebook:
-        return 'Facebook';
-      case SocialPlatform.youtube:
-        return 'YouTube';
-      case SocialPlatform.rednote:
-        return 'RedNote';
-      case SocialPlatform.snapchat:
-        return 'Snapchat';
-      case SocialPlatform.unknown:
-        return 'Unknown';
-    }
+    return DownloadItem.platformNameOf(platform);
   }
 }

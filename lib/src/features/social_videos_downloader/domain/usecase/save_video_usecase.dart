@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../../../../core/base_usecase/base_usecase.dart';
 import '../../../../core/error/failure.dart';
 import 'package:dartz/dartz.dart';
@@ -14,6 +16,7 @@ class SaveVideoUseCase extends BaseUseCase<String, SaveVideoParams> {
     return await videoRepo.saveVideo(
       videoLink: params.videoLink,
       savePath: params.savePath,
+      cancelToken: params.cancelToken,
       onReceiveProgress: params.onReceiveProgress,
     );
   }
@@ -22,11 +25,13 @@ class SaveVideoUseCase extends BaseUseCase<String, SaveVideoParams> {
 class SaveVideoParams {
   final String savePath;
   final String videoLink;
+  final CancelToken? cancelToken;
   final Function(int received, int total)? onReceiveProgress;
 
   SaveVideoParams({
     required this.savePath,
     required this.videoLink,
+    this.cancelToken,
     this.onReceiveProgress,
   });
 }

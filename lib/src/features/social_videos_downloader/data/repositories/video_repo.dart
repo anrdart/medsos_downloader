@@ -17,14 +17,13 @@ class VideoRepo implements VideoBaseRepo {
 
   @override
   Future<Either<Failure, Video>> getVideo(String videoLink) async {
-    // if (!await networkInfo.isConnected) {
-    //   return const Left(NoInternetConnectionFailure());
-    // }
     try {
       final VideoModel video = await remoteDataSource.getVideo(videoLink);
       return Right(video.toDomain());
     } on DioException catch (error) {
       return Left(ErrorHandler.handle(error).failure);
+    } catch (error) {
+      return Left(ServerFailure());
     }
   }
 
@@ -32,20 +31,21 @@ class VideoRepo implements VideoBaseRepo {
   Future<Either<Failure, String>> saveVideo({
     required String videoLink,
     required String savePath,
+    CancelToken? cancelToken,
     Function(int received, int total)? onReceiveProgress,
   }) async {
-    // if (!await networkInfo.isConnected) {
-    //   return const Left(NoInternetConnectionFailure());
-    // }
     try {
       final String message = await remoteDataSource.saveVideo(
         savePath: savePath,
         videoLink: videoLink,
+        cancelToken: cancelToken,
         onReceiveProgress: onReceiveProgress,
       );
       return Right(message);
     } on DioException catch (error) {
       return Left(ErrorHandler.handle(error).failure);
+    } catch (error) {
+      return Left(ServerFailure());
     }
   }
 }

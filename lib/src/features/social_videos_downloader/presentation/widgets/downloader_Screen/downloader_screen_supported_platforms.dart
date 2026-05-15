@@ -1,140 +1,133 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:anr_saver/src/core/media_query.dart';
-import 'package:flutter_svg/svg.dart';
-
-import '../../../../../core/common_widgets/container_with_shadows.dart';
-import '../../../../../core/utils/app_assets.dart';
-import '../../../../../core/utils/app_colors.dart';
-import '../../../../../core/utils/app_strings.dart';
-import '../../../../../core/utils/styles_manager.dart';
-import '../../../../../core/providers/language_provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class DownloaderScreenSupportedPlatforms extends StatefulWidget {
   const DownloaderScreenSupportedPlatforms({super.key});
 
   @override
-  State<DownloaderScreenSupportedPlatforms> createState() =>
-      _DownloaderScreenSupportedPlatformsState();
+  State<DownloaderScreenSupportedPlatforms> createState() => _State();
 }
 
-class _DownloaderScreenSupportedPlatformsState
-    extends State<DownloaderScreenSupportedPlatforms> {
+class _State extends State<DownloaderScreenSupportedPlatforms> {
+  late final ScrollController _ctrl;
+
+  static const _platforms = [
+    _P("TikTok", "assets/images/tiktok.svg"),
+    _P("Instagram", "assets/images/instagram.svg"),
+    _P("YouTube", "assets/images/youtube.svg"),
+    _P("Twitter", "assets/images/twitter.svg"),
+    _P("Facebook", "assets/images/facebook.svg"),
+    _P("Reddit", "assets/images/reddit.svg"),
+    _P("Pinterest", "assets/images/pinterest.svg"),
+    _P("Snapchat", "assets/images/snapchat.svg"),
+    _P("Bluesky", "assets/images/bluesky.svg"),
+    _P("Twitch", "assets/images/twitch.svg"),
+    _P("Vimeo", "assets/images/vimeo.svg"),
+    _P("SoundCloud", "assets/images/soundcloud.svg"),
+    _P("Tumblr", "assets/images/tumblr.svg"),
+    _P("Bilibili", "assets/images/bilibili.svg"),
+    _P("Dailymotion", "assets/images/dailymotion.svg"),
+    _P("VK", "assets/images/vk.svg"),
+    _P("OK.ru", "assets/images/ok.svg"),
+    _P("Rutube", "assets/images/rutube.svg"),
+    _P("Loom", "assets/images/loom.svg"),
+    _P("Streamable", "assets/images/streamable.svg"),
+    _P("Newgrounds", "assets/images/newgrounds.svg"),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _autoScroll());
+  }
+
+  void _autoScroll() {
+    if (!mounted) return;
+    double offset = 0;
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(milliseconds: 25));
+      if (!mounted || !_ctrl.hasClients) return false;
+      offset += 0.4;
+      if (offset >= _ctrl.position.maxScrollExtent) offset = 0;
+      _ctrl.jumpTo(offset);
+      return true;
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer<LanguageProvider>(
-      builder: (context, languageProvider, child) {
-        return ContainerWithShadows(
-          widthMultiplier: 0.9,
-          heightMultiplier: 0.3,
-          applyGradient: false,
-          child: Padding(
-            padding: EdgeInsets.all(context.height * 0.02),
-            child: Column(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    AppStrings.supportedPlatforms,
-                    textAlign: TextAlign.center,
-                    style: getTitleStyle(
-                      fontSize: context.width * 0.05,
-                      color: AppColors.primaryColor,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 7,
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Flexible(
-                              child: SvgPicture.asset(
-                                AppAssets.facebook,
-                                fit: BoxFit.contain,
-                                width: context.width * 0.2,
-                              ),
-                            ),
-                            Flexible(
-                              child: SvgPicture.asset(
-                                AppAssets.instagram,
-                                fit: BoxFit.contain,
-                                width: context.width * 0.2,
-                              ),
-                            ),
-                            Flexible(
-                              child: SvgPicture.asset(
-                                AppAssets.tiktok,
-                                fit: BoxFit.contain,
-                                width: context.width * 0.2,
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Flexible(
-                              child: SvgPicture.asset(
-                                AppAssets.youtube,
-                                fit: BoxFit.contain,
-                                width: context.width * 0.2,
-                              ),
-                            ),
-                            Flexible(
-                              child: SvgPicture.asset(
-                                AppAssets.shorts,
-                                fit: BoxFit.contain,
-                                width: context.width * 0.2,
-                              ),
-                            ),
-                            Flexible(
-                              child: Container(
-                                width: context.width * 0.15,
-                                height: context.width * 0.15,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.red.shade600,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.red.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                                child: Padding(
-                                  padding:
-                                      EdgeInsets.all(context.width * 0.035),
-                                  child: SvgPicture.asset(
-                                    AppAssets.rednote,
-                                    fit: BoxFit.contain,
-                                    colorFilter: const ColorFilter.mode(
-                                      Colors.white,
-                                      BlendMode.srcIn,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    final items = [..._platforms, ..._platforms, ..._platforms];
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        controller: _ctrl,
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, i) => _PlatformChip(p: items[i]),
+      ),
+    );
+  }
+}
+
+class _P {
+  final String name;
+  final String svgPath;
+  const _P(this.name, this.svgPath);
+}
+
+class _PlatformChip extends StatelessWidget {
+  final _P p;
+  const _PlatformChip({required this.p});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1A1A2E) : const Color(0xFFE8EAF0);
+    final borderColor = isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
+    final iconColor = isDark ? Colors.white.withOpacity(0.85) : Colors.black.withOpacity(0.7);
+    final textColor = isDark ? Colors.white.withOpacity(0.85) : Colors.black.withOpacity(0.7);
+
+    return Container(
+      height: 38,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.asset(
+            p.svgPath,
+            width: 16,
+            height: 16,
+            fit: BoxFit.contain,
+            colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            p.name,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: textColor,
+              letterSpacing: 0.2,
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

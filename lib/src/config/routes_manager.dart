@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'dart:developer' as developer;
 
+import '../core/utils/app_constants.dart';
+import '../features/cookie_auth/presentation/bloc/account_bloc.dart';
+import '../features/cookie_auth/presentation/bloc/account_event.dart';
+import '../features/cookie_auth/presentation/screens/accounts_screen.dart';
+import '../features/cookie_auth/presentation/screens/webview_login_screen.dart';
 import '../features/social_videos_downloader/presentation/screens/downloader_screen.dart';
 import '../features/social_videos_downloader/presentation/screens/downloads_screen.dart';
 import '../features/social_videos_downloader/presentation/widgets/downloads_screen/view_video_screen.dart';
@@ -13,6 +20,8 @@ class Routes {
   static const String downloads = "/downloads";
   static const String viewVideo = "/viewVideo";
   static const String permissionSetup = "/permissionSetup";
+  static const String accounts = "/accounts";
+  static const String webviewLogin = "/webviewLogin";
 }
 
 class AppRounter {
@@ -46,6 +55,22 @@ class AppRounter {
             name: 'AppRouter');
         return MaterialPageRoute(
             builder: (context) => const PermissionSetupScreen());
+      case Routes.accounts:
+        return MaterialPageRoute(
+          builder: (context) => BlocProvider(
+            create: (_) =>
+                GetIt.I<AccountBloc>()..add(LoadAccounts()),
+            child: const AccountsScreen(),
+          ),
+        );
+      case Routes.webviewLogin:
+        final platform = setting.arguments as SocialPlatform;
+        return MaterialPageRoute(
+          builder: (context) => BlocProvider.value(
+            value: GetIt.I<AccountBloc>(),
+            child: WebViewLoginScreen(platform: platform),
+          ),
+        );
       default:
         developer.log('❌ Unknown route: ${setting.name}', name: 'AppRouter');
         return null;

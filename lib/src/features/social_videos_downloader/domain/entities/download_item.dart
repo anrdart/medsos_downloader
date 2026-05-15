@@ -1,17 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:anr_saver/src/features/social_videos_downloader/domain/entities/video.dart';
 
+import '../../../../core/utils/app_constants.dart';
 import '../../../../core/utils/app_enums.dart';
-
-enum SocialPlatform {
-  tiktok,
-  instagram,
-  facebook,
-  youtube,
-  rednote,
-  snapchat,
-  unknown
-}
 
 class DownloadItem extends Equatable {
   final Video video;
@@ -22,6 +13,7 @@ class DownloadItem extends Equatable {
   final SocialPlatform platform;
   final String videoTitle;
   final DateTime downloadTime;
+  final String? thumbnailPath;
 
   DownloadItem({
     required this.video,
@@ -31,6 +23,7 @@ class DownloadItem extends Equatable {
     this.progress = 0.0,
     this.platform = SocialPlatform.unknown,
     this.videoTitle = "",
+    this.thumbnailPath,
     DateTime? downloadTime,
   }) : downloadTime = downloadTime ?? DateTime.now();
 
@@ -44,27 +37,10 @@ class DownloadItem extends Equatable {
         platform,
         videoTitle,
         downloadTime,
+        thumbnailPath,
       ];
 
-  /// Get platform name as string
-  String get platformName {
-    switch (platform) {
-      case SocialPlatform.tiktok:
-        return "TikTok";
-      case SocialPlatform.instagram:
-        return "Instagram";
-      case SocialPlatform.facebook:
-        return "Facebook";
-      case SocialPlatform.youtube:
-        return "YouTube";
-      case SocialPlatform.rednote:
-        return "RedNote";
-      case SocialPlatform.snapchat:
-        return "Snapchat";
-      case SocialPlatform.unknown:
-        return "Unknown";
-    }
-  }
+  String get platformName => _platformNames[platform] ?? "Unknown";
 
   DownloadItem copyWith({
     Video? video,
@@ -75,6 +51,7 @@ class DownloadItem extends Equatable {
     SocialPlatform? platform,
     String? videoTitle,
     DateTime? downloadTime,
+    String? thumbnailPath,
   }) {
     return DownloadItem(
       video: video ?? this.video,
@@ -85,10 +62,10 @@ class DownloadItem extends Equatable {
       platform: platform ?? this.platform,
       videoTitle: videoTitle ?? this.videoTitle,
       downloadTime: downloadTime ?? this.downloadTime,
+      thumbnailPath: thumbnailPath ?? this.thumbnailPath,
     );
   }
 
-  /// Convert to JSON for persistence
   Map<String, dynamic> toJson() {
     return {
       'video': video.toJson(),
@@ -99,10 +76,10 @@ class DownloadItem extends Equatable {
       'platform': platform.name,
       'videoTitle': videoTitle,
       'downloadTime': downloadTime.toIso8601String(),
+      'thumbnailPath': thumbnailPath,
     };
   }
 
-  /// Create from JSON for persistence
   factory DownloadItem.fromJson(Map<String, dynamic> json) {
     return DownloadItem(
       video: Video.fromJson(json['video']),
@@ -119,53 +96,70 @@ class DownloadItem extends Equatable {
       ),
       videoTitle: json['videoTitle'] ?? "",
       downloadTime: DateTime.parse(json['downloadTime']),
+      thumbnailPath: json['thumbnailPath'],
     );
   }
 
-  /// Determine platform from video URL
   static SocialPlatform detectPlatform(String url) {
-    final lowerUrl = url.toLowerCase();
+    final u = url.toLowerCase();
 
-    if (lowerUrl.contains('tiktok.com') ||
-        lowerUrl.contains('douyin.com') ||
-        lowerUrl.contains('v.douyin.com')) {
-      return SocialPlatform.tiktok;
-    } else if (lowerUrl.contains('instagram.com')) {
-      return SocialPlatform.instagram;
-    } else if (lowerUrl.contains('facebook.com') ||
-        lowerUrl.contains('fb.watch')) {
-      return SocialPlatform.facebook;
-    } else if (lowerUrl.contains('youtube.com') ||
-        lowerUrl.contains('youtu.be')) {
-      return SocialPlatform.youtube;
-    } else if (lowerUrl.contains('xiaohongshu.com') ||
-        lowerUrl.contains('xhslink.com') ||
-        lowerUrl.contains('rednote')) {
-      return SocialPlatform.rednote;
-    } else if (lowerUrl.contains('snapchat.com')) {
-      return SocialPlatform.snapchat;
-    } else {
-      return SocialPlatform.unknown;
+    for (final entry in _urlPatterns.entries) {
+      for (final pattern in entry.value) {
+        if (u.contains(pattern)) return entry.key;
+      }
     }
+
+    return SocialPlatform.unknown;
   }
 
-  /// Get platform icon asset path
-  String get platformIcon {
-    switch (platform) {
-      case SocialPlatform.tiktok:
-        return 'assets/images/tiktok.svg';
-      case SocialPlatform.instagram:
-        return 'assets/images/instagram.svg';
-      case SocialPlatform.facebook:
-        return 'assets/images/facebook.svg';
-      case SocialPlatform.youtube:
-        return 'assets/images/youtube.svg';
-      case SocialPlatform.rednote:
-        return 'assets/images/rednote.svg';
-      case SocialPlatform.snapchat:
-        return 'assets/images/snapchat.svg';
-      case SocialPlatform.unknown:
-        return 'assets/images/default_video.svg';
-    }
-  }
+  static const Map<SocialPlatform, List<String>> _urlPatterns = {
+    SocialPlatform.tiktok: ['tiktok.com', 'douyin.com', 'v.douyin.com'],
+    SocialPlatform.instagram: ['instagram.com'],
+    SocialPlatform.facebook: ['facebook.com', 'fb.watch', 'fb.com'],
+    SocialPlatform.youtube: ['youtube.com', 'youtu.be', 'youtube-nocookie.com'],
+    SocialPlatform.twitter: ['twitter.com', 'x.com', 't.co'],
+    SocialPlatform.reddit: ['reddit.com', 'redd.it'],
+    SocialPlatform.pinterest: ['pinterest.com', 'pin.it'],
+    SocialPlatform.snapchat: ['snapchat.com'],
+    SocialPlatform.bluesky: ['bsky.app', 'bsky.social'],
+    SocialPlatform.twitch: ['twitch.tv', 'clips.twitch.tv'],
+    SocialPlatform.vimeo: ['vimeo.com'],
+    SocialPlatform.soundcloud: ['soundcloud.com'],
+    SocialPlatform.tumblr: ['tumblr.com'],
+    SocialPlatform.bilibili: ['bilibili.com', 'b23.tv'],
+    SocialPlatform.dailymotion: ['dailymotion.com', 'dai.ly'],
+    SocialPlatform.vk: ['vk.com', 'vk.ru'],
+    SocialPlatform.ok: ['ok.ru'],
+    SocialPlatform.rutube: ['rutube.ru'],
+    SocialPlatform.loom: ['loom.com'],
+    SocialPlatform.streamable: ['streamable.com'],
+    SocialPlatform.newgrounds: ['newgrounds.com'],
+  };
+
+  static String platformNameOf(SocialPlatform p) => _platformNames[p] ?? "Unknown";
+
+  static const Map<SocialPlatform, String> _platformNames = {
+    SocialPlatform.tiktok: "TikTok",
+    SocialPlatform.instagram: "Instagram",
+    SocialPlatform.facebook: "Facebook",
+    SocialPlatform.youtube: "YouTube",
+    SocialPlatform.twitter: "Twitter/X",
+    SocialPlatform.reddit: "Reddit",
+    SocialPlatform.pinterest: "Pinterest",
+    SocialPlatform.snapchat: "Snapchat",
+    SocialPlatform.bluesky: "Bluesky",
+    SocialPlatform.twitch: "Twitch",
+    SocialPlatform.vimeo: "Vimeo",
+    SocialPlatform.soundcloud: "SoundCloud",
+    SocialPlatform.tumblr: "Tumblr",
+    SocialPlatform.bilibili: "Bilibili",
+    SocialPlatform.dailymotion: "Dailymotion",
+    SocialPlatform.vk: "VK",
+    SocialPlatform.ok: "OK.ru",
+    SocialPlatform.rutube: "Rutube",
+    SocialPlatform.loom: "Loom",
+    SocialPlatform.streamable: "Streamable",
+    SocialPlatform.newgrounds: "Newgrounds",
+    SocialPlatform.unknown: "Unknown",
+  };
 }

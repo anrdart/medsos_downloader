@@ -1,14 +1,17 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anr_saver/src/core/media_query.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/presentation/widgets/downloader_screen/downloader_screen_supported_platforms.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/presentation/widgets/downloader_screen/language_switcher.dart';
+import 'package:anr_saver/src/features/social_videos_downloader/presentation/widgets/downloader_Screen/downloader_screen_supported_platforms.dart';
+import 'package:anr_saver/src/features/social_videos_downloader/presentation/widgets/downloader_Screen/language_switcher.dart';
 
 import '../../../../../config/routes_manager.dart';
 import '../../../../../core/common_widgets/app_background.dart';
 import '../../../../../core/common_widgets/toast.dart';
 import '../../../../../core/utils/app_colors.dart';
 import '../../../../../core/utils/app_enums.dart';
+import '../../../domain/entities/download_item.dart';
 import '../../bloc/downloader_bloc/downloader_bloc.dart';
 import 'bottom_sheet/downloader_bottom_sheet.dart';
 import 'downloader_screen_input_field.dart';
@@ -94,6 +97,10 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
                               SizedBox(height: context.height * 0.03),
                               const DownloaderScreenSupportedPlatforms(),
                               SizedBox(height: context.height * 0.025),
+                              _RecentDownloadsSection(
+                                downloads: context.read<DownloaderBloc>().newDownloads,
+                              ),
+                              SizedBox(height: context.height * 0.02),
                               const LanguageSwitcher(),
                             ],
                           ),
@@ -108,5 +115,135 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
         ),
       ],
     );
+  }
+}
+
+class _RecentDownloadsSection extends StatelessWidget {
+  final List<DownloadItem> downloads;
+  const _RecentDownloadsSection({required this.downloads});
+
+  @override
+  Widget build(BuildContext context) {
+    final recent = downloads.take(3).toList();
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: context.width * 0.05),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Unduhan Terbaru",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (downloads.isNotEmpty)
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pushNamed(Routes.downloads),
+                  child: Text(
+                    "Lihat Semua",
+                    style: TextStyle(
+                      color: AppColors.primaryColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (recent.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                "Belum ada unduhan",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 13),
+              ),
+            )
+          else
+            ...recent.map((item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: _RecentTile(item: item),
+                )),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentTile extends StatelessWidget {
+  final DownloadItem item;
+  const _RecentTile({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).pushNamed(Routes.downloads),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(_icon, color: _color, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                item.videoTitle.isNotEmpty ? item.videoTitle : item.video.title,
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              item.platformName,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.4),
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData get _icon {
+    switch (item.status) {
+      case DownloadStatus.downloading:
+        return Icons.downloading;
+      case DownloadStatus.success:
+        return Icons.check_circle;
+      case DownloadStatus.error:
+        return Icons.error;
+      case DownloadStatus.paused:
+        return Icons.pause_circle;
+    }
+  }
+
+  Color get _color {
+    switch (item.status) {
+      case DownloadStatus.downloading:
+        return AppColors.primaryColor;
+      case DownloadStatus.success:
+        return AppColors.green;
+      case DownloadStatus.error:
+        return AppColors.red;
+      case DownloadStatus.paused:
+        return Colors.orange;
+    }
   }
 }

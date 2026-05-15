@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/utils/app_colors.dart';
+import '../../../../../core/utils/app_constants.dart';
 import '../../screens/downloads_screen.dart';
-import '../../../domain/entities/download_item.dart';
 import 'new_downloads_section.dart';
 import 'old_downloads_section.dart';
 

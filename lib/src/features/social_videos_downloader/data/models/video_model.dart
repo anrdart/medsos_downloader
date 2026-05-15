@@ -18,51 +18,42 @@ class VideoModel extends Video {
   });
 
   factory VideoModel.fromJson(Map<String, dynamic> json) {
-    // Extract video links from different possible fields in the API response
     List<VideoLinkModel> videoLinks = [];
 
-    // Check for direct video URL fields common in TikTok API responses
     if (json['play'] != null) {
       videoLinks.add(VideoLinkModel(
-          quality: _formatQualityName("Standard"),
-          link: json['play'].toString()));
+          quality: _fmt("Standard"), link: json['play'].toString()));
     }
     if (json['hdplay'] != null) {
-      videoLinks.add(VideoLinkModel(
-          quality: _formatQualityName("HD"), link: json['hdplay'].toString()));
+      videoLinks.add(
+          VideoLinkModel(quality: _fmt("HD"), link: json['hdplay'].toString()));
     }
     if (json['wmplay'] != null) {
       videoLinks.add(VideoLinkModel(
-          quality: _formatQualityName("Watermark"),
-          link: json['wmplay'].toString()));
+          quality: _fmt("Watermark"), link: json['wmplay'].toString()));
     }
 
-    // RedNote specific video links
     if (json['video_url'] != null) {
       videoLinks.add(VideoLinkModel(
-          quality: _formatQualityName("RedNote Video"),
-          link: json['video_url'].toString()));
+          quality: _fmt("Video"), link: json['video_url'].toString()));
     }
 
-    // Check for links array (if present)
     if (json['links'] != null && json['links'] is List) {
       videoLinks.addAll((json['links'] as List)
           .map((linkJson) => VideoLinkModel(
-              quality: _formatQualityName(linkJson['quality'] ?? "Video"),
+              quality: _fmt(linkJson['quality'] ?? "Video"),
               link: linkJson['link'] ?? ""))
           .toList());
     }
 
-    // RedNote image processing - convert to video links for consistency
     if (json['image_urls'] != null && json['image_urls'] is List) {
       List<String> imageUrls = List<String>.from(json['image_urls']);
       for (int i = 0; i < imageUrls.length; i++) {
         videoLinks.add(VideoLinkModel(
-            quality: _formatQualityName("Image ${i + 1}"), link: imageUrls[i]));
+            quality: _fmt("Image ${i + 1}"), link: imageUrls[i]));
       }
     }
 
-    // Create stats model if needed fields are present
     VideoStatsModel? stats;
     if (json['duration'] != null ||
         json['play_count'] != null ||
@@ -76,7 +67,6 @@ class VideoModel extends Video {
       );
     }
 
-    // Extract images list for RedNote galleries
     List<String> images = [];
     if (json['images'] != null && json['images'] is List) {
       images =
@@ -101,92 +91,238 @@ class VideoModel extends Video {
     );
   }
 
-  /// Helper function to format video quality names to be more user-friendly
-  static String _formatQualityName(String originalQuality) {
-    // Handle common quality patterns and make them more readable
-    final quality = originalQuality.toLowerCase();
+  /// Parse Cobalt API response
+  factory VideoModel.fromCobalt(
+      Map<String, dynamic> json, String originalUrl) {
+    final status = json["status"] as String?;
+    final rId = DateTime.now().millisecondsSinceEpoch.toString();
+    List<VideoLinkModel> videoLinks = [];
+    List<String> images = [];
+    String title = json["filename"] ?? "Video";
 
-    // Video quality patterns with more detailed descriptions
-    if (quality.contains('video_hd_original')) {
-      return '📺 Original Quality (Best - No Compression)';
-    }
-    if (quality.contains('video_hd_540p_normal')) {
-      return '📺 High Quality (540p - Recommended)';
-    }
-    if (quality.contains('video_hd_540p_lowest')) {
-      return '📺 Standard Quality (540p - Smaller Size)';
-    }
-    if (quality.contains('video_hd_720p')) {
-      return '📺 HD Quality (720p - High Definition)';
-    }
-    if (quality.contains('video_hd_1080p')) {
-      return '📺 Full HD Quality (1080p - Premium)';
-    }
-    if (quality.contains('video_hd')) return '📺 HD Video (High Definition)';
-    if (quality.contains('hdplay')) {
-      return '📺 High Definition Video (Best Quality)';
-    }
-    if (quality.contains('play')) return '📺 Standard Video (Normal Quality)';
-    if (quality.contains('wmplay')) {
-      return '📺 Video with Watermark (Contains Logo)';
-    }
+    if (status == "redirect" || status == "tunnel") {
+      final url = json["url"] as String? ?? "";
+      final filename = json["filename"] as String? ?? "Video";
+      videoLinks.add(VideoLinkModel(
+        quality: _fmt("Best Quality"),
+        link: url,
+      ));
+      title = filename;
+    } else if (status == "picker") {
+      final picker = json["picker"] as List? ?? [];
+      final audioUrl = json["audio"] as String?;
 
-    // Audio patterns with detailed descriptions
-    if (quality.contains('audio')) return '🎵 Audio Only (Music/Sound Track)';
-    if (quality.contains('mp3')) return '🎵 Audio MP3 (Music File)';
+      for (int i = 0; i < picker.length; i++) {
+        final item = picker[i] as Map<String, dynamic>;
+        final type = item["type"] as String? ?? "video";
+        final url = item["url"] as String? ?? "";
 
-    // Image patterns with platform info
-    if (quality.contains('image')) {
-      return '🖼️ $originalQuality (Photo/Picture)';
-    }
+        if (type == "photo") {
+          images.add(url);
+          videoLinks.add(VideoLinkModel(
+            quality: _fmt("Image ${i + 1}"),
+            link: url,
+          ));
+        } else if (type == "gif") {
+          videoLinks.add(VideoLinkModel(
+            quality: _fmt("GIF ${i + 1}"),
+            link: url,
+          ));
+        } else {
+          videoLinks.add(VideoLinkModel(
+            quality: _fmt("Video ${i + 1}"),
+            link: url,
+          ));
+        }
+      }
 
-    // TikTok/Douyin patterns with detailed info
-    if (quality.contains('tiktok video quality')) {
-      String number = originalQuality.replaceAll(RegExp(r'[^\d]'), '');
-      return '📺 TikTok Video Quality ${number.isNotEmpty ? number : ""} (Mobile Optimized)';
-    }
-    if (quality.contains('tiktok video')) {
-      return '📺 TikTok Video (Mobile Format)';
-    }
-
-    // RedNote patterns with platform info
-    if (quality.contains('rednote video')) {
-      return '📺 RedNote Video (Xiaohongshu Format)';
-    }
-
-    // Instagram patterns
-    if (quality.contains('instagram')) {
-      return '📺 Instagram Video (Social Format)';
-    }
-    if (quality.contains('story')) {
-      return '📺 Instagram Story (Vertical Format)';
-    }
-    if (quality.contains('reel')) return '📺 Instagram Reel (Short Video)';
-    if (quality.contains('igtv')) return '📺 IGTV Video (Long Format)';
-
-    // Facebook patterns
-    if (quality.contains('facebook')) {
-      return '📺 Facebook Video (Social Format)';
+      if (audioUrl != null && audioUrl.isNotEmpty) {
+        videoLinks.add(VideoLinkModel(
+          quality: "🎵 Audio Only",
+          link: audioUrl,
+        ));
+      }
     }
 
-    // YouTube patterns
-    if (quality.contains('youtube')) {
-      return '📺 YouTube Video (Platform Format)';
+    return VideoModel(
+      success: videoLinks.isNotEmpty,
+      message: videoLinks.isNotEmpty ? "Success" : "No media found",
+      srcUrl: originalUrl,
+      ogUrl: originalUrl,
+      title: _cleanTitle(title),
+      picture: "",
+      images: images,
+      timeTaken: DateTime.now().toString(),
+      rId: rId,
+      videoLinks: videoLinks,
+    );
+  }
+
+  /// Parse TikWM API response (TikTok/Douyin fallback)
+  factory VideoModel.fromTikwm(
+      Map<String, dynamic> json, String originalUrl) {
+    final data = json["data"] as Map<String, dynamic>? ?? {};
+    final rId = DateTime.now().millisecondsSinceEpoch.toString();
+    List<VideoLinkModel> videoLinks = [];
+    List<String> images = [];
+
+    // Video URLs
+    final hdPlay = data["hdplay"] as String?;
+    final play = data["play"] as String?;
+    final wmPlay = data["wmplay"] as String?;
+
+    if (hdPlay != null && hdPlay.isNotEmpty) {
+      videoLinks.add(VideoLinkModel(
+        quality: _fmt("HD No Watermark"),
+        link: hdPlay,
+      ));
     }
-    if (quality.contains('shorts')) return '📺 YouTube Shorts (Vertical Video)';
+    if (play != null && play.isNotEmpty) {
+      videoLinks.add(VideoLinkModel(
+        quality: _fmt("Standard No Watermark"),
+        link: play,
+      ));
+    }
+    if (wmPlay != null && wmPlay.isNotEmpty) {
+      videoLinks.add(VideoLinkModel(
+        quality: _fmt("With Watermark"),
+        link: wmPlay,
+      ));
+    }
 
-    // Quality level patterns with descriptions
-    if (quality.contains('ultra')) return '📺 Ultra Quality (4K/Highest)';
-    if (quality.contains('high')) return '📺 High Quality (Premium)';
-    if (quality.contains('medium')) return '📺 Medium Quality (Balanced)';
-    if (quality.contains('low')) return '📺 Low Quality (Fast Download)';
-    if (quality.contains('standard')) return '📺 Standard Quality (Normal)';
-    if (quality.contains('hd')) return '📺 HD Quality (High Definition)';
+    // Image gallery (TikTok photo mode)
+    final imageList = data["images"] as List?;
+    if (imageList != null) {
+      for (int i = 0; i < imageList.length; i++) {
+        final url = imageList[i].toString();
+        images.add(url);
+        videoLinks.add(VideoLinkModel(
+          quality: _fmt("Image ${i + 1}"),
+          link: url,
+        ));
+      }
+    }
 
-    // Generic video patterns with helpful descriptions
-    if (quality.contains('video')) return '📺 Video File (Downloadable)';
+    // Music
+    final musicUrl = data["music"] as String?;
+    if (musicUrl != null && musicUrl.isNotEmpty) {
+      videoLinks.add(VideoLinkModel(
+        quality: "🎵 Audio/Music",
+        link: musicUrl,
+      ));
+    }
 
-    // If no pattern matches, return original with video icon and helpful text
-    return '📺 $originalQuality (Media File)';
+    final title = data["title"] as String? ?? "TikTok Video";
+    final cover = data["cover"] as String? ?? data["origin_cover"] as String? ?? "";
+    final duration = data["duration"]?.toString() ?? "0";
+    final playCount = data["play_count"]?.toString() ?? "0";
+
+    return VideoModel(
+      success: videoLinks.isNotEmpty,
+      message: videoLinks.isNotEmpty ? "Success" : "No media found",
+      srcUrl: originalUrl,
+      ogUrl: originalUrl,
+      title: _cleanTitle(title),
+      picture: cover,
+      images: images,
+      timeTaken: DateTime.now().toString(),
+      rId: rId,
+      videoLinks: videoLinks,
+      stats: VideoStatsModel(
+        videoLenght: duration,
+        viewsCount: playCount,
+      ),
+    );
+  }
+
+  /// Parse yt-dlp API response (YouTube fallback)
+  factory VideoModel.fromYtdlp(
+      Map<String, dynamic> json, String originalUrl, String apiBaseUrl) {
+    final rId = DateTime.now().millisecondsSinceEpoch.toString();
+    List<VideoLinkModel> videoLinks = [];
+
+    final status = json["status"] as String?;
+    final title = json["title"] as String? ?? json["filename"] as String? ?? "YouTube Video";
+    var url = json["url"] as String? ?? "";
+
+    // If URL is relative path (tunnel/merged file), prepend base URL
+    if (url.startsWith("/")) {
+      url = "$apiBaseUrl$url";
+    }
+
+    if (url.isNotEmpty) {
+      final label = status == "redirect"
+          ? "Best Quality (Direct)"
+          : "Best Quality (Merged)";
+      videoLinks.add(VideoLinkModel(
+        quality: _fmt(label),
+        link: url,
+      ));
+    }
+
+    return VideoModel(
+      success: videoLinks.isNotEmpty,
+      message: videoLinks.isNotEmpty ? "Success" : "No media found",
+      srcUrl: originalUrl,
+      ogUrl: originalUrl,
+      title: _cleanTitle(title),
+      picture: "",
+      images: const [],
+      timeTaken: DateTime.now().toString(),
+      rId: rId,
+      videoLinks: videoLinks,
+    );
+  }
+
+  static String _cleanTitle(String title) {
+    if (title.isEmpty) return "Downloaded Media";
+    // Strip file extension
+    String clean = title.replaceAll(RegExp(r'\.(mp4|webm|mkv|mp3|ogg|wav|m4a)$', caseSensitive: false), '');
+    // Strip quality/codec suffix like "(720p, h264)" or "(1080p)"
+    clean = clean.replaceAll(RegExp(r'\s*\(\d+p,?\s*\w*\)\s*$'), '');
+    // Replace Cobalt's platform_hashID names with readable names
+    if (RegExp(r'^facebook_[A-Za-z0-9_-]+$').hasMatch(clean)) {
+      return "Facebook Video";
+    }
+    if (RegExp(r'^instagram_[A-Za-z0-9_-]+$').hasMatch(clean)) {
+      return "Instagram Post";
+    }
+    if (RegExp(r'^twitter_[A-Za-z0-9_-]+$').hasMatch(clean)) {
+      return "Twitter Post";
+    }
+    if (RegExp(r'^reddit_[A-Za-z0-9_-]+$').hasMatch(clean)) {
+      return "Reddit Post";
+    }
+    if (RegExp(r'^pinterest_[A-Za-z0-9_-]+$').hasMatch(clean)) {
+      return "Pinterest Pin";
+    }
+    if (RegExp(r'^tumblr_[A-Za-z0-9_-]+$').hasMatch(clean)) {
+      return "Tumblr Post";
+    }
+    if (RegExp(r'^snapchat_[A-Za-z0-9_-]+$').hasMatch(clean)) {
+      return "Snapchat Story";
+    }
+    clean = clean.trim();
+    return clean.isNotEmpty ? clean : "Downloaded Media";
+  }
+
+  static String _fmt(String quality) {
+    final q = quality.toLowerCase();
+
+    if (q.contains('best')) return '📺 Best Quality (Recommended)';
+    if (q.contains('hd no watermark')) return '📺 HD No Watermark (Best)';
+    if (q.contains('standard no watermark')) return '📺 Standard No Watermark';
+    if (q.contains('with watermark')) return '📺 With Watermark';
+    if (q.contains('hd')) return '📺 HD Quality';
+    if (q.contains('standard')) return '📺 Standard Quality';
+    if (q.contains('watermark')) return '📺 With Watermark';
+
+    if (q.startsWith('video')) return '📺 $quality';
+    if (q.startsWith('gif')) return '🎞️ $quality';
+    if (q.startsWith('image')) return '🖼️ $quality (Photo)';
+
+    if (q.contains('audio')) return '🎵 Audio Only';
+
+    return '📺 $quality';
   }
 }

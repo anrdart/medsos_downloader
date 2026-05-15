@@ -1,7 +1,7 @@
 name: anr_saver
 description: "ANR Saver - Your Ultimate Video Saver"
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
-version: 1.3.0+3
+version: 1.4.0+4
 
 environment:
   sdk: ">=3.4.3 <4.0.0"
@@ -11,7 +11,7 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.6
-  flutter_bloc: ^8.1.6
+  flutter_bloc: ^9.1.1
   device_preview: ^1.2.0
   flutter_svg: ^2.0.10+1
   equatable: ^2.0.5
@@ -21,30 +21,34 @@ dependencies:
   path: ^1.9.0
   gal: ^2.3.0
   video_thumbnail: ^0.5.3
-  permission_handler: ^11.3.1
-  get_it: ^7.7.0
+  permission_handler: ^12.0.1
+  get_it: ^9.2.1
   dio: ^5.5.0+1
-  fluttertoast: ^8.2.8
-  intl: ^0.19.0
+  fluttertoast: ^9.0.0
+  intl: ^0.20.2
   chewie: ^1.8.3
   adaptive_theme: ^3.6.0
-  bloc: ^8.1.4
-  share_plus: ^7.2.2
-  device_info_plus: ^10.1.0
-  supabase_flutter: ^2.3.4
+  bloc: ^9.2.0
+  share_plus: ^12.0.1
+  device_info_plus: ^12.3.0
+  firebase_core: ^3.12.1
+  firebase_remote_config: ^5.4.1
   shared_preferences: ^2.2.2
-  package_info_plus: ^8.0.2
+  package_info_plus: ^9.0.0
   url_launcher: ^6.3.1
   open_file: ^3.5.10
-  android_intent_plus: ^5.0.2
+  android_intent_plus: ^6.0.0
   provider: ^6.1.2
+  webview_flutter: ^4.10.0
+  webview_flutter_android: ^4.3.0
+  flutter_secure_storage: ^9.2.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_lints: ^3.0.0
-  flutter_launcher_icons: ^0.13.1
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter_launcher_icons:
   android: "ic_launcher"

@@ -8,8 +8,8 @@ import 'package:anr_saver/src/core/utils/app_strings.dart';
 import 'package:anr_saver/src/core/providers/language_provider.dart';
 import '../../../../config/routes_manager.dart';
 import '../bloc/downloader_bloc/downloader_bloc.dart';
-import '../widgets/downloader_screen/downloader_screen_body.dart';
-import '../widgets/downloader_screen/downloader_screen_bottom_app_bar.dart';
+import '../widgets/downloader_Screen/downloader_screen_body.dart';
+import '../widgets/downloader_Screen/downloader_screen_bottom_app_bar.dart';
 
 class DownloaderScreen extends StatefulWidget {
   const DownloaderScreen({super.key});
@@ -242,8 +242,8 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
           ),
           bottomNavigationBar: DownloaderBottomAppBar(
             onSharePressed: _handleDonation,
-            onDownloadPressed: () {
-              Navigator.of(context).pushNamed(Routes.downloads);
+            onAccountsPressed: () {
+              Navigator.of(context).pushNamed(Routes.accounts);
             },
           ),
         );

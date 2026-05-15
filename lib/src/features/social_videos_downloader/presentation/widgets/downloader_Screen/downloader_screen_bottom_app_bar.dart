@@ -9,12 +9,12 @@ import 'animated_toggle_button.dart';
 
 class DownloaderBottomAppBar extends StatelessWidget {
   final VoidCallback? onSharePressed;
-  final VoidCallback? onDownloadPressed;
+  final VoidCallback? onAccountsPressed;
 
   const DownloaderBottomAppBar({
     super.key,
     this.onSharePressed,
-    this.onDownloadPressed,
+    this.onAccountsPressed,
   });
 
   @override
@@ -76,16 +76,16 @@ class DownloaderBottomAppBar extends StatelessWidget {
               ),
               const Flexible(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12.0),
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
                   child: AnimatedToggleButton(),
                 ),
               ),
               _BuildActionButton(
-                icon: Icons.download_rounded,
-                onPressed: onDownloadPressed ?? () {},
+                icon: Icons.person_rounded,
+                onPressed: onAccountsPressed ?? () {},
                 isDark: isDark,
-                tooltip: 'Downloads',
-                isSecondary: false,
+                tooltip: 'Accounts',
+                isSecondary: true,
               ),
             ],
           ),
