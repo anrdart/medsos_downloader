@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:provider/provider.dart';
 import 'package:anr_saver/src/core/media_query.dart';
 import 'package:anr_saver/src/features/social_videos_downloader/presentation/widgets/downloader_Screen/downloader_screen_supported_platforms.dart';
 import 'package:anr_saver/src/features/social_videos_downloader/presentation/widgets/downloader_Screen/language_switcher.dart';
@@ -11,6 +13,8 @@ import '../../../../../core/common_widgets/app_background.dart';
 import '../../../../../core/common_widgets/toast.dart';
 import '../../../../../core/utils/app_colors.dart';
 import '../../../../../core/utils/app_enums.dart';
+import '../../../../../core/utils/app_strings.dart';
+import '../../../../../core/providers/language_provider.dart';
 import '../../../domain/entities/download_item.dart';
 import '../../bloc/downloader_bloc/downloader_bloc.dart';
 import 'bottom_sheet/downloader_bottom_sheet.dart';
@@ -27,6 +31,36 @@ class DownloaderScreenBody extends StatefulWidget {
 class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController videoLinkController = TextEditingController();
+  BannerAd? _bannerAd;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-9374589831001594/1262943956',
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          if (mounted) setState(() {});
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          _bannerAd = null;
+        },
+      ),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,43 +104,49 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
             builder: (context, state) {
               return Stack(
                 children: [
-                  const AppBackground(
-                    heightRatio: 1.5,
-                  ),
-                  SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          height: context.height * 0.02,
-                        ),
-                        const AppBarWithLogo(),
-                        SizedBox(
-                          height: context.height * 0.03,
-                        ),
-                        Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              DownloaderScreenInputField(
-                                videoLinkController: videoLinkController,
-                                formKey: formKey,
+                  const AppBackground(heightRatio: 1.5),
+                  // Use Consumer to rebuild when language changes
+                  Consumer<LanguageProvider>(
+                    builder: (context, _, __) {
+                      return Column(
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Column(
+                                children: [
+                                  SizedBox(height: context.height * 0.02),
+                                  const AppBarWithLogo(),
+                                  SizedBox(height: context.height * 0.03),
+                                  DownloaderScreenInputField(
+                                    videoLinkController: videoLinkController,
+                                    formKey: formKey,
+                                  ),
+                                  SizedBox(height: context.height * 0.03),
+                                  const DownloaderScreenSupportedPlatforms(),
+                                  SizedBox(height: context.height * 0.025),
+                                  _RecentDownloadsSection(
+                                    downloads: context.read<DownloaderBloc>().newDownloads,
+                                  ),
+                                  SizedBox(height: context.height * 0.015),
+                                  // AdMob Banner
+                                  if (_bannerAd != null)
+                                    Container(
+                                      alignment: Alignment.center,
+                                      width: _bannerAd!.size.width.toDouble(),
+                                      height: _bannerAd!.size.height.toDouble(),
+                                      child: AdWidget(ad: _bannerAd!),
+                                    ),
+                                  SizedBox(height: context.height * 0.015),
+                                ],
                               ),
-                              SizedBox(height: context.height * 0.03),
-                              const DownloaderScreenSupportedPlatforms(),
-                              SizedBox(height: context.height * 0.025),
-                              _RecentDownloadsSection(
-                                downloads: context.read<DownloaderBloc>().newDownloads,
-                              ),
-                              SizedBox(height: context.height * 0.02),
-                              const LanguageSwitcher(),
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                          // Language switcher always at bottom
+                          const LanguageSwitcher(),
+                          SizedBox(height: context.height * 0.01),
+                        ],
+                      );
+                    },
                   ),
                 ],
               );
@@ -133,26 +173,25 @@ class _RecentDownloadsSection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                "Unduhan Terbaru",
-                style: TextStyle(
+              Text(
+                AppStrings.recentDownloads,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (downloads.isNotEmpty)
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pushNamed(Routes.downloads),
-                  child: Text(
-                    "Lihat Semua",
-                    style: TextStyle(
-                      color: AppColors.primaryColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
+              GestureDetector(
+                onTap: () => Navigator.of(context).pushNamed(Routes.downloads),
+                child: Text(
+                  AppStrings.viewAll,
+                  style: TextStyle(
+                    color: AppColors.primaryColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -165,7 +204,7 @@ class _RecentDownloadsSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Text(
-                "Belum ada unduhan",
+                AppStrings.noDownloadsYet,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 13),
               ),

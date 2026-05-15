@@ -188,6 +188,89 @@ class AppStrings {
     }
   }
 
+  // Recent Downloads
+  static String get recentDownloads {
+    switch (_currentLanguage) {
+      case SupportedLanguage.indonesian:
+        return "Unduhan Terbaru";
+      case SupportedLanguage.english:
+        return "Recent Downloads";
+    }
+  }
+
+  static String get viewAll {
+    switch (_currentLanguage) {
+      case SupportedLanguage.indonesian:
+        return "Lihat Semua";
+      case SupportedLanguage.english:
+        return "View All";
+    }
+  }
+
+  static String get noDownloadsYet {
+    switch (_currentLanguage) {
+      case SupportedLanguage.indonesian:
+        return "Belum ada unduhan";
+      case SupportedLanguage.english:
+        return "No downloads yet";
+    }
+  }
+
+  // Update Dialog
+  static String get updateAvailable {
+    switch (_currentLanguage) {
+      case SupportedLanguage.indonesian:
+        return "Update Tersedia!";
+      case SupportedLanguage.english:
+        return "Update Available!";
+    }
+  }
+
+  static String get downloadAndInstall {
+    switch (_currentLanguage) {
+      case SupportedLanguage.indonesian:
+        return "Download & Install";
+      case SupportedLanguage.english:
+        return "Download & Install";
+    }
+  }
+
+  static String get later {
+    switch (_currentLanguage) {
+      case SupportedLanguage.indonesian:
+        return "Nanti saja";
+      case SupportedLanguage.english:
+        return "Later";
+    }
+  }
+
+  static String get checkUpdate {
+    switch (_currentLanguage) {
+      case SupportedLanguage.indonesian:
+        return "Periksa Update";
+      case SupportedLanguage.english:
+        return "Check for Update";
+    }
+  }
+
+  static String get appUpToDate {
+    switch (_currentLanguage) {
+      case SupportedLanguage.indonesian:
+        return "Aplikasi sudah versi terbaru!";
+      case SupportedLanguage.english:
+        return "App is up to date!";
+    }
+  }
+
+  static String get appInfo {
+    switch (_currentLanguage) {
+      case SupportedLanguage.indonesian:
+        return "Info Aplikasi";
+      case SupportedLanguage.english:
+        return "App Info";
+    }
+  }
+
   // RedNote specific messages
   static String get redNoteDetected {
     switch (_currentLanguage) {

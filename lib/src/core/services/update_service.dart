@@ -52,7 +52,8 @@ class UpdateService {
       final latestVersionName = config.getString('latest_version_name');
       final downloadUrl = config.getString('download_url');
       final changelog = config.getString('changelog');
-      final isForced = config.getBool('is_forced');
+      final isForcedStr = config.getString('is_forced').toLowerCase();
+      final isForced = isForcedStr == 'true' || isForcedStr == '1';
 
       final packageInfo = await PackageInfo.fromPlatform();
       final currentCode = int.tryParse(packageInfo.buildNumber) ?? 0;
@@ -82,15 +83,50 @@ class UpdateService {
       final dir = await getTemporaryDirectory();
       final savePath = '${dir.path}/anr_saver_update.apk';
 
-      await Dio().download(
+      // Delete old file if exists
+      final oldFile = File(savePath);
+      if (oldFile.existsSync()) await oldFile.delete();
+
+      final dio = Dio();
+      dio.options.followRedirects = true;
+      dio.options.maxRedirects = 5;
+      dio.options.receiveTimeout = const Duration(minutes: 10);
+
+      await dio.download(
         url,
         savePath,
+        options: Options(
+          headers: {
+            "Accept": "application/vnd.android.package-archive,*/*",
+            "User-Agent": "ANRSaver/1.0",
+          },
+        ),
         onReceiveProgress: (received, total) {
-          if (total > 0 && onProgress != null) {
-            onProgress(received / total);
+          if (onProgress != null) {
+            if (total > 0) {
+              onProgress(received / total);
+            } else {
+              // Unknown total - estimate based on typical APK size (~60MB)
+              onProgress((received / (60 * 1024 * 1024)).clamp(0.0, 0.95));
+            }
           }
         },
       );
+
+      // Validate downloaded file is actually an APK
+      final file = File(savePath);
+      if (!file.existsSync() || file.lengthSync() < 1000) {
+        developer.log('Download invalid: file too small or missing', name: 'UpdateService');
+        return null;
+      }
+
+      // Check APK magic bytes (PK zip header: 50 4B 03 04)
+      final bytes = file.readAsBytesSync().take(4).toList();
+      if (bytes.length < 4 || bytes[0] != 0x50 || bytes[1] != 0x4B) {
+        developer.log('Download invalid: not an APK file', name: 'UpdateService');
+        await file.delete();
+        return null;
+      }
 
       return savePath;
     } catch (e) {

@@ -22,20 +22,23 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  late final UpdateService _updateService;
   StreamSubscription<UpdateInfo>? _updateSub;
   bool _dialogShowing = false;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 8), _setupUpdateListener);
-  }
+    _updateService = sl<UpdateService>();
 
-  void _setupUpdateListener() {
-    if (!mounted) return;
-    final service = sl<UpdateService>();
-    _updateSub = service.updateStream.listen((info) {
-      if (mounted && !_dialogShowing) _showUpdateDialog(info);
+    // Init + start update checks after app is ready
+    Future.delayed(const Duration(seconds: 5), () async {
+      if (!mounted) return;
+      await _updateService.initialize();
+      _updateService.startPeriodicCheck();
+      _updateSub = _updateService.updateStream.listen((info) {
+        if (mounted && !_dialogShowing) _showUpdateDialog(info);
+      });
     });
   }
 
@@ -50,7 +53,7 @@ class _MyAppState extends State<MyApp> {
       useRootNavigator: true,
       builder: (_) => PopScope(
         canPop: !info.isForced,
-        child: UpdateDialog(updateInfo: info, updateService: sl<UpdateService>()),
+        child: UpdateDialog(updateInfo: info, updateService: _updateService),
       ),
     ).then((_) => _dialogShowing = false);
   }
@@ -58,6 +61,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     _updateSub?.cancel();
+    _updateService.dispose();
     super.dispose();
   }
 
