@@ -193,21 +193,22 @@ def _download_merged(url: str, height: str) -> dict:
     out_tmpl = str(DOWNLOAD_DIR / f"{token}.%(ext)s")
 
     try:
+        # Single print with a unique separator so title vs path never get
+        # confused (their print phases differ, so line order isn't stable).
         result = _run_ytdlp([
             "-f", format_spec,
             "--merge-output-format", "mp4",
             "-o", out_tmpl,
             "--no-playlist",
-            "--print", "after_move:filepath",
-            "--print", "title",
+            "--print", "after_move:%(title)s|@@|%(filepath)s",
             *_cookie_args(url),
             url,
         ], timeout=180)
 
-        lines = [l for l in result["stdout"].strip().split("\n") if l]
-        # after_move:filepath prints the final path; title prints after it
-        final_path = Path(lines[0]) if lines else None
-        title = lines[1] if len(lines) >= 2 else "video"
+        out = result["stdout"].strip()
+        title, _, path_str = out.rpartition("|@@|")
+        title = title.strip() or "video"
+        final_path = Path(path_str.strip()) if path_str.strip() else None
 
         if not final_path or not final_path.exists() or final_path.stat().st_size == 0:
             # Fallback: locate any file we wrote for this token
