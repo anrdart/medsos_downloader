@@ -1,7 +1,7 @@
 name: anr_saver
 description: "ANR Saver - Your Ultimate Video Saver"
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
-version: 1.5.0+7
+version: 1.6.0+8
 
 environment:
   sdk: ">=3.4.3 <4.0.0"

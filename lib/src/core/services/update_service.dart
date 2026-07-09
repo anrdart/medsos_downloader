@@ -3,9 +3,42 @@ import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
+
+/// Compare two semver strings ("x.y.z"). Returns true if [remote] > [local].
+/// Robust to missing components ("1.6" == "1.6.0") and stray build suffixes.
+bool isNewerVersionName(String remote, String local) {
+  List<int> parse(String v) => v
+      .split('+')
+      .first
+      .split('.')
+      .map((p) => int.tryParse(p.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0)
+      .toList();
+  final r = parse(remote);
+  final l = parse(local);
+  final n = r.length > l.length ? r.length : l.length;
+  for (var i = 0; i < n; i++) {
+    final rv = i < r.length ? r[i] : 0;
+    final lv = i < l.length ? l[i] : 0;
+    if (rv != lv) return rv > lv;
+  }
+  return false;
+}
+
+/// Map an Android ABI to the split-per-abi release APK filename.
+String abiApkFileName(List<String> supportedAbis) {
+  // Priority: arm64 > armv7 > x86_64 (matches `flutter build --split-per-abi`)
+  if (supportedAbis.contains('arm64-v8a')) return 'app-arm64-v8a-release.apk';
+  if (supportedAbis.contains('armeabi-v7a')) {
+    return 'app-armeabi-v7a-release.apk';
+  }
+  if (supportedAbis.contains('x86_64')) return 'app-x86_64-release.apk';
+  // Unknown ABI: fall back to arm64 (most common modern default)
+  return 'app-arm64-v8a-release.apk';
+}
 
 class UpdateService {
   Timer? _checkTimer;
@@ -21,8 +54,12 @@ class UpdateService {
         minimumFetchInterval: const Duration(minutes: 5),
       ));
       await config.setDefaults({
-        'latest_version_name': '1.3.0',
-        'latest_version_code': 3,
+        'latest_version_name': '1.6.0',
+        'latest_version_code': 8,
+        // Folder holding the split-per-abi APKs, e.g. a GitHub release:
+        // https://github.com/<owner>/<repo>/releases/download/v1.6.0
+        'download_url_base': '',
+        // Legacy single-URL fallback (used verbatim if download_url_base empty)
         'download_url': '',
         'changelog': '',
         'is_forced': false,
@@ -50,7 +87,8 @@ class UpdateService {
 
       final latestVersionCode = config.getInt('latest_version_code');
       final latestVersionName = config.getString('latest_version_name');
-      final downloadUrl = config.getString('download_url');
+      final downloadUrlBase = config.getString('download_url_base').trim();
+      final legacyUrl = config.getString('download_url').trim();
       final changelog = config.getString('changelog');
       final isForcedStr = config.getString('is_forced').toLowerCase();
       final isForced = isForcedStr == 'true' || isForcedStr == '1';
@@ -58,7 +96,14 @@ class UpdateService {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentCode = int.tryParse(packageInfo.buildNumber) ?? 0;
 
-      if (latestVersionCode > currentCode && downloadUrl.isNotEmpty) {
+      // Compare by semver name: split-per-abi offsets the versionCode
+      // (armv7 +1000 / arm64 +2000 / x86_64 +4000) so codes aren't comparable.
+      final isNewer = isNewerVersionName(latestVersionName, packageInfo.version);
+
+      // Resolve the right APK for this device's ABI.
+      final downloadUrl = await _resolveDownloadUrl(downloadUrlBase, legacyUrl);
+
+      if (isNewer && downloadUrl.isNotEmpty) {
         final info = UpdateInfo(
           versionName: latestVersionName,
           versionCode: latestVersionCode,
@@ -76,6 +121,23 @@ class UpdateService {
       developer.log('Update check failed: $e', name: 'UpdateService');
     }
     return null;
+  }
+
+  /// Build the download URL for this device's ABI. Prefers [base] +
+  /// per-abi filename; falls back to [legacy] single URL when base is empty.
+  Future<String> _resolveDownloadUrl(String base, String legacy) async {
+    if (base.isEmpty) return legacy;
+    List<String> abis = const [];
+    try {
+      if (Platform.isAndroid) {
+        abis = (await DeviceInfoPlugin().androidInfo).supportedAbis;
+      }
+    } catch (e) {
+      developer.log('ABI detection failed: $e', name: 'UpdateService');
+    }
+    final file = abiApkFileName(abis);
+    final trimmed = base.endsWith('/') ? base.substring(0, base.length - 1) : base;
+    return '$trimmed/$file';
   }
 
   Future<String?> downloadUpdate(String url, {Function(double)? onProgress}) async {
