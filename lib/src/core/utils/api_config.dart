@@ -3,9 +3,19 @@ class ApiConfig {
   // Add your own self-hosted instance at the top for best reliability
   // Docker: https://github.com/imputnet/cobalt
   static const List<String> cobaltInstances = [
+    // Public no-auth instances (verified live) - primary while VPS is down
+    "https://co.eepy.today",
+    "https://co.otomir23.me",
+    // Self-hosted (replace IP when migrating VPS)
     "http://34.128.84.130:9000",
+    // api.cobalt.tools requires JWT; only useful if cobaltApiKey is set
     "https://api.cobalt.tools",
   ];
+
+  // Per-request timeouts (seconds). Short connect timeout so dead
+  // instances are skipped fast instead of hanging the fallback chain.
+  static const int cobaltConnectTimeoutSeconds = 6;
+  static const int cobaltReceiveTimeoutSeconds = 20;
 
   // Cobalt API key (optional - only needed if instance requires auth)
   static const String? cobaltApiKey = null;

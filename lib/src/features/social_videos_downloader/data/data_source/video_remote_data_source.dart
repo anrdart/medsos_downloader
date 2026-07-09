@@ -102,6 +102,11 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
         path: AppConstants.cobaltEndpoint,
         baseUrl: instanceUrl,
         customHeaders: headers,
+        // Short connect timeout: skip dead instances fast in the fallback chain
+        connectTimeout:
+            const Duration(seconds: ApiConfig.cobaltConnectTimeoutSeconds),
+        receiveTimeout:
+            const Duration(seconds: ApiConfig.cobaltReceiveTimeoutSeconds),
         data: {
           "url": videoLink,
           "videoQuality": quality,

@@ -50,14 +50,16 @@ class DioHelper {
     Map<String, dynamic>? queryParams,
     String? baseUrl,
     Map<String, dynamic>? customHeaders,
+    Duration? connectTimeout,
+    Duration? receiveTimeout,
   }) async {
     if (baseUrl != null) {
       final tempDio = Dio();
       tempDio.options = BaseOptions(
         baseUrl: baseUrl,
         receiveDataWhenStatusError: true,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 30),
+        connectTimeout: connectTimeout ?? const Duration(seconds: 15),
+        receiveTimeout: receiveTimeout ?? const Duration(seconds: 30),
         headers: customHeaders ?? {"Content-Type": "application/json"},
       );
       tempDio.interceptors.add(sl<LogInterceptor>());
