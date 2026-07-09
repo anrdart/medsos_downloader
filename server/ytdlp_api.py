@@ -100,7 +100,7 @@ def get_info(req: VideoRequest, x_api_key: str = Header()):
             "-j", "--no-playlist",
             *_cookie_args(req.url),
             req.url,
-        ], timeout=20)
+        ], timeout=60)
 
         data = json.loads(result["stdout"])
 
@@ -136,34 +136,32 @@ def get_download(req: VideoRequest, x_api_key: str = Header()):
     _check_key(x_api_key)
 
     try:
-        # Try to get direct URL first (fastest)
+        # Prefer a progressive (muxed) stream so we can hand back a direct URL
+        # with no server-side merge. Fall back to video+audio merge only if
+        # no muxed stream exists at this height.
         height = req.quality.replace("p", "")
-        format_spec = f"bestvideo[height<={height}]+bestaudio/best[height<={height}]/best"
+        muxed_spec = (
+            f"best[height<={height}][ext=mp4]/best[height<={height}]/best"
+        )
 
+        # One extraction that yields BOTH url and title (avoids a 2nd ~20s call)
         result = _run_ytdlp([
-            "-f", format_spec,
-            "-g", "--no-playlist",
+            "-f", muxed_spec,
+            "--no-playlist",
+            "--print", "%(urls)s",
+            "--print", "%(title)s",
             *_cookie_args(req.url),
             req.url,
-        ], timeout=20)
+        ], timeout=60)
 
-        urls = result["stdout"].strip().split("\n")
+        lines = [l for l in result["stdout"].strip().split("\n") if l]
+        # First non-empty line = url(s), last = title
+        url_line = lines[0] if lines else ""
+        title = lines[-1] if len(lines) >= 2 else "video"
+        urls = url_line.split("\n")
 
-        if len(urls) >= 2:
-            # Separate video + audio streams - need to merge
-            # Download merged file instead
-            return _download_merged(req.url, height)
-        elif len(urls) == 1 and urls[0].startswith("http"):
-            # Single URL - direct download possible
-            # Get title too
-            title_result = _run_ytdlp([
-                "--print", "%(title)s",
-                "--no-playlist",
-                *_cookie_args(req.url),
-                req.url,
-            ], timeout=10)
-            title = title_result["stdout"].strip() or "video"
-
+        if len(urls) == 1 and urls[0].startswith("http"):
+            # Single progressive URL - direct download possible
             return {
                 "status": "redirect",
                 "url": urls[0],
@@ -171,6 +169,7 @@ def get_download(req: VideoRequest, x_api_key: str = Header()):
                 "filename": f"{title}.mp4",
             }
         else:
+            # No muxed stream - fall back to server-side merge
             return _download_merged(req.url, height)
 
     except Exception as e:
@@ -194,7 +193,7 @@ def _download_merged(url: str, height: str) -> dict:
             "--no-playlist",
             *_cookie_args(url),
             url,
-        ], timeout=120)
+        ], timeout=180)
 
         if not Path(output_path).exists():
             raise Exception("Download failed: file not created")
@@ -204,7 +203,7 @@ def _download_merged(url: str, height: str) -> dict:
             "--no-playlist",
             *_cookie_args(url),
             url,
-        ], timeout=10)
+        ], timeout=30)
         title = title_result["stdout"].strip() or "video"
 
         filename = Path(output_path).name
