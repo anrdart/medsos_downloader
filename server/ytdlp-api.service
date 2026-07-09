@@ -1,0 +1,15 @@
+[Unit]
+Description=ANR Saver yt-dlp API (YouTube fallback)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/anrsaver/server
+EnvironmentFile=/opt/anrsaver/.env
+ExecStart=/opt/anrsaver/venv/bin/uvicorn ytdlp_api:app --host 0.0.0.0 --port 9002
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+[Unit]
+Description=ANR Saver Cookie Sync (feeds Cobalt + yt-dlp)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/anrsaver/server
+EnvironmentFile=/opt/anrsaver/.env
+ExecStart=/opt/anrsaver/venv/bin/uvicorn cookie_sync:app --host 0.0.0.0 --port 9005
+Restart=on-failure
+RestartSec=3
+# Needs docker CLI to restart the Cobalt container on cookie changes
+SupplementaryGroups=docker
+
+[Install]
+WantedBy=multi-user.target

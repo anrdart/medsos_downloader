@@ -1,0 +1,21 @@
+# Cobalt runs in Docker; the two Python services (ytdlp_api, cookie_sync)
+# run via systemd — see install-vps.sh.
+services:
+  cobalt:
+    image: ghcr.io/imputnet/cobalt:11
+    container_name: cobalt
+    init: true
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      API_URL: "http://${VPS_IP:-127.0.0.1}:9000/"
+      API_PORT: "9000"
+      COOKIE_PATH: "/cookies.json"
+      # No auth so the app's no-key requests work
+      # (protect via firewall / reverse proxy instead if exposed publicly)
+    volumes:
+      # cookie_sync.py writes here; Cobalt reads it for login-gated platforms
+      - /opt/anrsaver/cookies.json:/cookies.json:ro
+    labels:
+      - com.centurylinklabs.watchtower.scope=cobalt

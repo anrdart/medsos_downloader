@@ -30,6 +30,27 @@ API_KEY = os.getenv("API_KEY", "change-me")
 DOWNLOAD_DIR = Path(os.getenv("DOWNLOAD_DIR", "/tmp/ytdlp-downloads"))
 DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+# Shared with cookie_sync.py: dir holding per-platform Netscape cookie files
+# (e.g. youtube.txt). Injected via yt-dlp --cookies so login-gated videos work.
+COOKIE_DIR = Path(os.getenv("COOKIE_DIR", "/opt/anrsaver/cookies"))
+
+
+def _cookie_args(url: str) -> list:
+    """Return ['--cookies', path] if a cookie file exists for this platform."""
+    platform = None
+    if "youtube.com" in url or "youtu.be" in url:
+        platform = "youtube"
+    elif "instagram.com" in url:
+        platform = "instagram"
+    elif "twitter.com" in url or "x.com" in url:
+        platform = "twitter"
+    elif "facebook.com" in url or "fb.watch" in url:
+        platform = "facebook"
+    if not platform:
+        return []
+    cookie_file = COOKIE_DIR / f"{platform}.txt"
+    return ["--cookies", str(cookie_file)] if cookie_file.exists() else []
+
 
 class VideoRequest(BaseModel):
     url: str
@@ -61,6 +82,7 @@ def get_info(req: VideoRequest, x_api_key: str = Header()):
     try:
         result = _run_ytdlp([
             "-j", "--no-playlist",
+            *_cookie_args(req.url),
             req.url,
         ], timeout=20)
 
@@ -105,6 +127,7 @@ def get_download(req: VideoRequest, x_api_key: str = Header()):
         result = _run_ytdlp([
             "-f", format_spec,
             "-g", "--no-playlist",
+            *_cookie_args(req.url),
             req.url,
         ], timeout=20)
 
@@ -120,6 +143,7 @@ def get_download(req: VideoRequest, x_api_key: str = Header()):
             title_result = _run_ytdlp([
                 "--print", "%(title)s",
                 "--no-playlist",
+                *_cookie_args(req.url),
                 req.url,
             ], timeout=10)
             title = title_result["stdout"].strip() or "video"
@@ -152,6 +176,7 @@ def _download_merged(url: str, height: str) -> dict:
             "--merge-output-format", "mp4",
             "-o", output_path,
             "--no-playlist",
+            *_cookie_args(url),
             url,
         ], timeout=120)
 
@@ -161,6 +186,7 @@ def _download_merged(url: str, height: str) -> dict:
         title_result = _run_ytdlp([
             "--print", "%(title)s",
             "--no-playlist",
+            *_cookie_args(url),
             url,
         ], timeout=10)
         title = title_result["stdout"].strip() or "video"
