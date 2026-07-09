@@ -14,8 +14,10 @@ Endpoints:
 
 import os
 import subprocess
+import sys
 import json
 import tempfile
+import shutil
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException
@@ -33,6 +35,20 @@ DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 # Shared with cookie_sync.py: dir holding per-platform Netscape cookie files
 # (e.g. youtube.txt). Injected via yt-dlp --cookies so login-gated videos work.
 COOKIE_DIR = Path(os.getenv("COOKIE_DIR", "/opt/anrsaver/cookies"))
+
+# Resolve yt-dlp binary: prefer the one in this interpreter's venv (systemd
+# runs uvicorn from the venv but its PATH may not include venv/bin), else PATH.
+def _resolve_ytdlp() -> str:
+    env = os.getenv("YTDLP_BIN")
+    if env:
+        return env
+    venv_bin = Path(sys.executable).parent / "yt-dlp"
+    if venv_bin.exists():
+        return str(venv_bin)
+    return shutil.which("yt-dlp") or "yt-dlp"
+
+
+YTDLP_BIN = _resolve_ytdlp()
 
 
 def _cookie_args(url: str) -> list:
@@ -63,7 +79,7 @@ def _check_key(x_api_key: str = Header()):
 
 
 def _run_ytdlp(args: list, timeout: int = 30) -> dict:
-    cmd = ["yt-dlp", "--no-warnings", "--no-check-certificates"] + args
+    cmd = [YTDLP_BIN, "--no-warnings", "--no-check-certificates"] + args
     try:
         result = subprocess.run(
             cmd, capture_output=True, text=True, timeout=timeout,
@@ -216,7 +232,7 @@ def serve_file(filename: str):
 def health():
     try:
         result = subprocess.run(
-            ["yt-dlp", "--version"], capture_output=True, text=True, timeout=5,
+            [YTDLP_BIN, "--version"], capture_output=True, text=True, timeout=5,
         )
         version = result.stdout.strip()
     except Exception:
