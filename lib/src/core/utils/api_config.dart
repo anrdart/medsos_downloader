@@ -3,11 +3,11 @@ class ApiConfig {
   // Add your own self-hosted instance at the top for best reliability
   // Docker: https://github.com/imputnet/cobalt
   static const List<String> cobaltInstances = [
-    // Public no-auth instances (verified live) - primary while VPS is down
+    // Self-hosted: has synced cookies, best for login-gated content
+    "http://157.20.159.50:9000",
+    // Public no-auth instances (verified live) - fallback
     "https://co.eepy.today",
     "https://co.otomir23.me",
-    // Self-hosted (replace IP when migrating VPS)
-    "http://34.128.84.130:9000",
     // api.cobalt.tools requires JWT; only useful if cobaltApiKey is set
     "https://api.cobalt.tools",
   ];
@@ -22,11 +22,11 @@ class ApiConfig {
 
   // Cookie sync server - deploy server/cookie_sync.py on VPS
   // URL: http://your-vps-ip:9001  API_KEY: same as in cookie_sync.py
-  static const String cookieSyncUrl = "http://34.128.84.130:9005";
+  static const String cookieSyncUrl = "http://157.20.159.50:9005";
   static const String cookieSyncApiKey = "wrIShnwgKDOvpNs7jCj30SweholNPjAo";
 
   // yt-dlp API - YouTube fallback (deploy server/ytdlp_api.py on VPS)
-  static const String ytdlpApiUrl = "http://34.128.84.130:9002";
+  static const String ytdlpApiUrl = "http://157.20.159.50:9002";
   static const String ytdlpApiKey = "wrIShnwgKDOvpNs7jCj30SweholNPjAo";
 
   // TikWM fallback for TikTok (free, no auth)

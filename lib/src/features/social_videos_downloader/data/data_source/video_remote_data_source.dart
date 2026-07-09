@@ -39,17 +39,16 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
       }
     }
 
-    // yt-dlp fallback for YouTube
-    if (_isYouTubeUrl(videoLink)) {
-      try {
-        final result = await _tryGetVideoFromYtdlp(videoLink);
-        if (result.success && result.videoLinks.isNotEmpty) {
-          developer.log("Success via yt-dlp fallback", name: "VideoAPI");
-          return result;
-        }
-      } catch (e) {
-        developer.log("yt-dlp fallback failed: $e", name: "VideoAPI");
+    // yt-dlp fallback for ALL platforms (strongest extractor; works for
+    // TikTok/IG/Twitter/etc. when Cobalt fails on datacenter IPs).
+    try {
+      final result = await _tryGetVideoFromYtdlp(videoLink);
+      if (result.success && result.videoLinks.isNotEmpty) {
+        developer.log("Success via yt-dlp fallback", name: "VideoAPI");
+        return result;
       }
+    } catch (e) {
+      developer.log("yt-dlp fallback failed: $e", name: "VideoAPI");
     }
 
     // TikWM fallback for TikTok/Douyin
@@ -228,13 +227,6 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
     return lower.contains("tiktok.com") ||
         lower.contains("douyin.com") ||
         lower.contains("v.douyin.com");
-  }
-
-  bool _isYouTubeUrl(String url) {
-    final lower = url.toLowerCase();
-    return lower.contains("youtube.com") ||
-        lower.contains("youtu.be") ||
-        lower.contains("youtube-nocookie.com");
   }
 
   Future<VideoModel> _tryGetVideoFromYtdlp(String videoLink) async {
