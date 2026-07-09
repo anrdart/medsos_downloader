@@ -243,3 +243,9 @@ error_logs/
 # Performance monitoring
 performance_logs/
 memory_dumps/
+
+# Signing (keep private)
+android/key.properties
+android/app/upload-keystore.jks
+*.jks
+*.keystore
