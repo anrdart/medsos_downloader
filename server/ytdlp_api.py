@@ -136,10 +136,17 @@ def get_download(req: VideoRequest, x_api_key: str = Header()):
     _check_key(x_api_key)
 
     try:
-        # Prefer a progressive (muxed) stream so we can hand back a direct URL
-        # with no server-side merge. Fall back to video+audio merge only if
-        # no muxed stream exists at this height.
         height = req.quality.replace("p", "")
+
+        # YouTube's googlevideo URLs are locked to the extractor's IP, so a
+        # redirect would be unfetchable from the user's device. Download on the
+        # server and serve the file instead.
+        is_youtube = "youtube.com" in req.url or "youtu.be" in req.url
+        if is_youtube:
+            return _download_merged(req.url, height)
+
+        # Other platforms: prefer a progressive (muxed) stream and hand back a
+        # direct URL with no server-side merge. Fall back to merge if needed.
         muxed_spec = (
             f"best[height<={height}][ext=mp4]/best[height<={height}]/best"
         )
