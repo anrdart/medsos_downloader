@@ -16,8 +16,8 @@ import os
 import subprocess
 import sys
 import json
-import tempfile
 import shutil
+import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException
@@ -184,52 +184,55 @@ def get_download(req: VideoRequest, x_api_key: str = Header()):
 
 
 def _download_merged(url: str, height: str) -> dict:
-    """Download and merge video+audio, return file URL"""
+    """Download (merging if needed) and serve the resulting file."""
     format_spec = f"bestvideo[height<={height}]+bestaudio/best[height<={height}]/best"
 
-    with tempfile.NamedTemporaryFile(
-        dir=DOWNLOAD_DIR, suffix=".mp4", delete=False
-    ) as tmp:
-        output_path = tmp.name
+    # Unique basename WITHOUT pre-creating the file: yt-dlp treats an existing
+    # empty target as "already downloaded" and skips it, leaving a 0-byte file.
+    token = uuid.uuid4().hex
+    out_tmpl = str(DOWNLOAD_DIR / f"{token}.%(ext)s")
 
     try:
         result = _run_ytdlp([
             "-f", format_spec,
             "--merge-output-format", "mp4",
-            "-o", output_path,
+            "-o", out_tmpl,
             "--no-playlist",
+            "--print", "after_move:filepath",
+            "--print", "title",
             *_cookie_args(url),
             url,
         ], timeout=180)
 
-        if not Path(output_path).exists():
-            raise Exception("Download failed: file not created")
+        lines = [l for l in result["stdout"].strip().split("\n") if l]
+        # after_move:filepath prints the final path; title prints after it
+        final_path = Path(lines[0]) if lines else None
+        title = lines[1] if len(lines) >= 2 else "video"
 
-        title_result = _run_ytdlp([
-            "--print", "%(title)s",
-            "--no-playlist",
-            *_cookie_args(url),
-            url,
-        ], timeout=30)
-        title = title_result["stdout"].strip() or "video"
-
-        filename = Path(output_path).name
+        if not final_path or not final_path.exists() or final_path.stat().st_size == 0:
+            # Fallback: locate any file we wrote for this token
+            matches = list(DOWNLOAD_DIR.glob(f"{token}.*"))
+            matches = [m for m in matches if m.stat().st_size > 0]
+            if not matches:
+                raise Exception("Download failed: empty or missing output")
+            final_path = matches[0]
 
         return {
             "status": "tunnel",
-            "url": f"/files/{filename}",
+            "url": f"/files/{final_path.name}",
             "title": title,
             "filename": f"{title}.mp4",
         }
     except Exception:
-        Path(output_path).unlink(missing_ok=True)
+        for m in DOWNLOAD_DIR.glob(f"{token}.*"):
+            m.unlink(missing_ok=True)
         raise
 
 
 @app.get("/files/{filename}")
 def serve_file(filename: str):
     filepath = DOWNLOAD_DIR / filename
-    if not filepath.exists():
+    if not filepath.exists() or filepath.stat().st_size == 0:
         raise HTTPException(404, "File not found")
     return FileResponse(filepath, media_type="video/mp4", filename=filename)
 
