@@ -43,6 +43,17 @@ echo ">> Python venv + deps..."
 [[ -d "$APP_DIR/venv" ]] || python3 -m venv "$APP_DIR/venv"
 "$APP_DIR/venv/bin/pip" install -q --upgrade pip
 "$APP_DIR/venv/bin/pip" install -q -r "$SRC_DIR/requirements.txt"
+# yt-dlp on YouTube needs the latest master (n-challenge fixes ship fast)
+"$APP_DIR/venv/bin/pip" install -q -U --pre \
+  "yt-dlp @ git+https://github.com/yt-dlp/yt-dlp.git" || true
+
+echo ">> deno (JS runtime for yt-dlp's YouTube EJS solver)..."
+if ! command -v deno >/dev/null; then
+  curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/root/.deno sh
+fi
+# Symlink to a global path so the systemd service PATH can find it
+ln -sf /root/.deno/bin/deno /usr/local/bin/deno
+/usr/local/bin/deno --version | head -1 || echo "WARN: deno not runnable"
 
 echo ">> Cobalt via docker compose..."
 ( set -a; . "$APP_DIR/.env"; set +a; cd "$SRC_DIR" && docker compose up -d )
