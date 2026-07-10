@@ -149,31 +149,46 @@ class UpdateService {
       final oldFile = File(savePath);
       if (oldFile.existsSync()) await oldFile.delete();
 
-      final dio = Dio();
-      dio.options.followRedirects = true;
-      dio.options.maxRedirects = 5;
-      dio.options.receiveTimeout = const Duration(minutes: 10);
+      final dio = Dio(BaseOptions(
+        followRedirects: true,
+        maxRedirects: 5,
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(minutes: 10),
+      ));
 
-      await dio.download(
+      // Stream manually: dio.download's onReceiveProgress reports the
+      // Content-Length of the FIRST hop, which for GitHub is a 302 with
+      // content-length: 0 -> total stays 0 and progress sticks/estimates.
+      // Reading the final streamed response gives the real length + live bytes.
+      final response = await dio.get<ResponseBody>(
         url,
-        savePath,
         options: Options(
+          responseType: ResponseType.stream,
           headers: {
             "Accept": "application/vnd.android.package-archive,*/*",
             "User-Agent": "ANRSaver/1.0",
           },
         ),
-        onReceiveProgress: (received, total) {
-          if (onProgress != null) {
-            if (total > 0) {
-              onProgress(received / total);
-            } else {
-              // Unknown total - estimate based on typical APK size (~60MB)
-              onProgress((received / (60 * 1024 * 1024)).clamp(0.0, 0.95));
-            }
-          }
-        },
       );
+
+      final total = int.tryParse(
+              response.headers.value(Headers.contentLengthHeader) ?? '') ??
+          -1;
+
+      final raf = File(savePath).openSync(mode: FileMode.write);
+      int received = 0;
+      try {
+        await for (final chunk in response.data!.stream) {
+          raf.writeFromSync(chunk);
+          received += chunk.length;
+          if (onProgress != null && total > 0) {
+            onProgress((received / total).clamp(0.0, 1.0));
+          }
+        }
+      } finally {
+        await raf.close();
+      }
+      if (onProgress != null) onProgress(1.0);
 
       // Validate downloaded file is actually an APK
       final file = File(savePath);
