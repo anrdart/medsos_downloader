@@ -137,7 +137,10 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
     if (status == "tunnel" || status == "redirect") {
       final tunnelUrl = data["url"] as String? ?? "";
       if (tunnelUrl.isNotEmpty && await _validateTunnelUrl(tunnelUrl)) {
-        return VideoModel.fromCobalt(data, videoLink);
+        // Also offer audio-only (MP3): Cobalt extracts it via downloadMode:audio.
+        final audioUrl =
+            await _tryGetCobaltAudio(instanceUrl, headers, videoLink);
+        return VideoModel.fromCobalt(data, videoLink, audioUrl: audioUrl);
       }
       throw Exception("Tunnel tidak valid untuk video ini.");
     }
@@ -149,6 +152,38 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
     throw Exception(
         "Server tidak bisa memproses video ini. "
         "Coba video lain atau hubungi admin server.");
+  }
+
+  /// Ask Cobalt for an audio-only (MP3) tunnel. Best-effort: returns null on
+  /// any failure so the video result is still shown.
+  Future<String?> _tryGetCobaltAudio(String instanceUrl,
+      Map<String, dynamic> headers, String videoLink) async {
+    try {
+      final response = await dioHelper.post(
+        path: AppConstants.cobaltEndpoint,
+        baseUrl: instanceUrl,
+        customHeaders: headers,
+        connectTimeout:
+            const Duration(seconds: ApiConfig.cobaltConnectTimeoutSeconds),
+        receiveTimeout:
+            const Duration(seconds: ApiConfig.cobaltReceiveTimeoutSeconds),
+        data: {
+          "url": videoLink,
+          "downloadMode": "audio",
+          "audioFormat": "mp3",
+          "filenameStyle": "basic",
+        },
+      );
+      final data = response.data as Map<String, dynamic>?;
+      final status = data?["status"] as String?;
+      if (status == "tunnel" || status == "redirect") {
+        final url = data?["url"] as String? ?? "";
+        return url.isNotEmpty ? url : null;
+      }
+    } catch (e) {
+      developer.log("Cobalt audio fetch failed: $e", name: "VideoAPI");
+    }
+    return null;
   }
 
   /// HEAD check tunnel URL to verify it will return actual data

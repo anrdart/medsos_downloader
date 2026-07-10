@@ -93,7 +93,7 @@ class VideoModel extends Video {
 
   /// Parse Cobalt API response
   factory VideoModel.fromCobalt(
-      Map<String, dynamic> json, String originalUrl) {
+      Map<String, dynamic> json, String originalUrl, {String? audioUrl}) {
     final status = json["status"] as String?;
     final rId = DateTime.now().millisecondsSinceEpoch.toString();
     List<VideoLinkModel> videoLinks = [];
@@ -110,7 +110,6 @@ class VideoModel extends Video {
       title = filename;
     } else if (status == "picker") {
       final picker = json["picker"] as List? ?? [];
-      final audioUrl = json["audio"] as String?;
 
       for (int i = 0; i < picker.length; i++) {
         final item = picker[i] as Map<String, dynamic>;
@@ -136,14 +135,25 @@ class VideoModel extends Video {
         }
       }
 
-      if (audioUrl != null && audioUrl.isNotEmpty) {
+      final pickerAudio = json["audio"] as String?;
+      if (pickerAudio != null && pickerAudio.isNotEmpty) {
         videoLinks.add(VideoLinkModel(
           quality: "🎵 Audio Only",
-          link: audioUrl,
+          link: pickerAudio,
           isAudio: true,
           mode: 'audio',
         ));
       }
+    }
+
+    // Audio-only tunnel fetched separately (video-tunnel case).
+    if (audioUrl != null && audioUrl.isNotEmpty) {
+      videoLinks.add(VideoLinkModel(
+        quality: "🎵 Audio (MP3)",
+        link: audioUrl,
+        isAudio: true,
+        mode: 'audio',
+      ));
     }
 
     return VideoModel(
