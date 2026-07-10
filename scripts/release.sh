@@ -18,7 +18,20 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 TAG="v$VNAME"
 APK_DIR="build/app/outputs/flutter-apk"
-SA="${FIREBASE_SA_JSON:-scripts/.firebase-sa.json}"
+
+# Service-account JSON: env override, else scripts/.firebase-sa.json, else the
+# one committed-locally under lib/config/ (gitignored).
+if [[ -n "${FIREBASE_SA_JSON:-}" ]]; then
+  SA="$FIREBASE_SA_JSON"
+elif [[ -f scripts/.firebase-sa.json ]]; then
+  SA="scripts/.firebase-sa.json"
+else
+  SA="$(ls lib/config/*firebase-adminsdk*.json 2>/dev/null | head -1 || true)"
+fi
+
+# Use the scripts venv python if present (Python may be externally-managed)
+PY="python3"
+[[ -x scripts/.venv/bin/python ]] && PY="scripts/.venv/bin/python"
 
 echo ">> Preflight..."
 command -v gh >/dev/null || { echo "gh CLI not found"; exit 1; }
@@ -53,7 +66,7 @@ URL_BASE="https://github.com/$REPO/releases/download/$TAG"
 echo ">> Updating Firebase Remote Config..."
 FORCED_FLAG=""
 [[ "$FORCED" == "--forced" ]] && FORCED_FLAG="--forced"
-python3 scripts/set_remote_config.py \
+FIREBASE_SA_JSON="$SA" "$PY" scripts/set_remote_config.py \
   --version-name "$VNAME" --version-code "$VCODE" \
   --url-base "$URL_BASE" --changelog "$CHANGELOG" $FORCED_FLAG
 

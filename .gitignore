@@ -254,3 +254,5 @@ android/app/upload-keystore.jks
 scripts/.firebase-sa.json
 **/*firebase*sa*.json
 **/service-account*.json
+**/*firebase-adminsdk*.json
+lib/config/*.json
