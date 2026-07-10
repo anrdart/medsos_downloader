@@ -105,6 +105,28 @@ Future<dynamic> buildDownloadBottomSheet(
                             ));
                       },
                     ),
+                    const SizedBox(height: 10),
+                    // On-demand audio-only (MP3): resolved via yt-dlp when tapped.
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                        side: const BorderSide(color: Colors.white70),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      icon: const Icon(Icons.music_note, color: Colors.white),
+                      label: const Text(
+                        "Audio (MP3)",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        context
+                            .read<DownloaderBloc>()
+                            .add(DownloaderGetAudio(video: video));
+                      },
+                    ),
                     SizedBox(
                         height:
                             MediaQuery.of(context).padding.bottom > 0 ? 8 : 8),

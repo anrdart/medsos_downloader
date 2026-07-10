@@ -7,6 +7,8 @@ import 'package:dartz/dartz.dart';
 abstract class VideoBaseRepo {
   Future<Either<Failure, Video>> getVideo(String videoLink);
 
+  Future<Either<Failure, String>> getAudioUrl(String videoLink);
+
   Future<Either<Failure, String>> saveVideo({
     required String videoLink,
     required String savePath,

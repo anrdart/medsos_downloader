@@ -15,7 +15,9 @@ import '../../../../../core/utils/app_strings.dart';
 import '../../../../../core/helpers/permission_helper.dart';
 import '../../../domain/entities/download_item.dart';
 import '../../../domain/entities/video_item.dart';
+import '../../../domain/entities/video_link.dart';
 import '../../../domain/usecase/get_video_usecase.dart';
+import '../../../domain/usecase/get_audio_url_usecase.dart';
 import '../../../domain/usecase/save_video_usecase.dart';
 
 part 'downloader_event.dart';
@@ -24,16 +26,19 @@ part 'downloader_state.dart';
 
 class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
   final GetVideoUseCase getVideoUseCase;
+  final GetAudioUrlUseCase getAudioUrlUseCase;
   final SaveVideoUseCase saveVideoUseCase;
   static const String _downloadHistoryKey = 'download_history';
 
   DownloaderBloc({
     required this.getVideoUseCase,
+    required this.getAudioUrlUseCase,
     required this.saveVideoUseCase,
   }) : super(DownloaderInitial()) {
     on<LoadOldDownloads>(_loadOldDownloads);
     on<LoadDownloadHistory>(_loadDownloadHistory);
     on<DownloaderGetVideo>(_getVideo);
+    on<DownloaderGetAudio>(_getAudio);
     on<DownloaderSaveVideo>(_saveVideo);
     on<DownloaderPauseVideo>(_pauseVideo);
     on<DownloaderResumeVideo>(_resumeVideo);
@@ -57,6 +62,42 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     result.fold(
       (left) => emit(DownloaderGetVideoFailure(left.message)),
       (right) => emit(DownloaderGetVideoSuccess(right)),
+    );
+  }
+
+  Future<void> _getAudio(
+    DownloaderGetAudio event,
+    Emitter<DownloaderState> emit,
+  ) async {
+    emit(const DownloaderGetVideoLoading());
+    final result = await getAudioUrlUseCase(event.video.srcUrl);
+    result.fold(
+      (left) => emit(DownloaderGetVideoFailure(left.message)),
+      (audioUrl) {
+        // Attach the resolved MP3 link and hand off to the normal save flow.
+        const audioQuality = "🎵 Audio (MP3)";
+        final withAudio = Video(
+          success: event.video.success,
+          message: event.video.message,
+          srcUrl: event.video.srcUrl,
+          ogUrl: event.video.ogUrl,
+          title: event.video.title,
+          picture: event.video.picture,
+          images: event.video.images,
+          timeTaken: event.video.timeTaken,
+          rId: event.video.rId,
+          videoLinks: [
+            VideoLink(
+              quality: audioQuality,
+              link: audioUrl,
+              isAudio: true,
+              mode: 'audio',
+            ),
+          ],
+          stats: event.video.stats,
+        );
+        add(DownloaderSaveVideo(video: withAudio, selectedLink: audioQuality));
+      },
     );
   }
 

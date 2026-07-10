@@ -11,6 +11,9 @@ import '../../../../core/utils/api_config.dart';
 abstract class VideoBaseRemoteDataSource {
   Future<VideoModel> getVideo(String videoLink);
 
+  /// Resolve an audio-only (MP3) download URL for [videoLink] on demand.
+  Future<String> getAudioUrl(String videoLink);
+
   Future<String> saveVideo({
     required String videoLink,
     required String savePath,
@@ -137,10 +140,7 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
     if (status == "tunnel" || status == "redirect") {
       final tunnelUrl = data["url"] as String? ?? "";
       if (tunnelUrl.isNotEmpty && await _validateTunnelUrl(tunnelUrl)) {
-        // Also offer audio-only (MP3): Cobalt extracts it via downloadMode:audio.
-        final audioUrl =
-            await _tryGetCobaltAudio(instanceUrl, headers, videoLink);
-        return VideoModel.fromCobalt(data, videoLink, audioUrl: audioUrl);
+        return VideoModel.fromCobalt(data, videoLink);
       }
       throw Exception("Tunnel tidak valid untuk video ini.");
     }
@@ -154,36 +154,33 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
         "Coba video lain atau hubungi admin server.");
   }
 
-  /// Ask Cobalt for an audio-only (MP3) tunnel. Best-effort: returns null on
-  /// any failure so the video result is still shown.
-  Future<String?> _tryGetCobaltAudio(String instanceUrl,
-      Map<String, dynamic> headers, String videoLink) async {
-    try {
-      final response = await dioHelper.post(
-        path: AppConstants.cobaltEndpoint,
-        baseUrl: instanceUrl,
-        customHeaders: headers,
-        connectTimeout:
-            const Duration(seconds: ApiConfig.cobaltConnectTimeoutSeconds),
-        receiveTimeout:
-            const Duration(seconds: ApiConfig.cobaltReceiveTimeoutSeconds),
-        data: {
-          "url": videoLink,
-          "downloadMode": "audio",
-          "audioFormat": "mp3",
-          "filenameStyle": "basic",
-        },
-      );
-      final data = response.data as Map<String, dynamic>?;
-      final status = data?["status"] as String?;
-      if (status == "tunnel" || status == "redirect") {
-        final url = data?["url"] as String? ?? "";
-        return url.isNotEmpty ? url : null;
+  /// Resolve an audio-only (MP3) URL via the yt-dlp API. yt-dlp (with the deno
+  /// EJS solver) reliably extracts audio where Cobalt's audio tunnel does not.
+  @override
+  Future<String> getAudioUrl(String videoLink) async {
+    final baseUrl = ApiConfig.ytdlpApiUrl;
+    final response = await dioHelper.post(
+      path: "/download",
+      baseUrl: baseUrl,
+      customHeaders: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-Api-Key": ApiConfig.ytdlpApiKey,
+      },
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 120),
+      data: {"url": videoLink, "mode": "audio"},
+    );
+    final data = response.data as Map<String, dynamic>?;
+    final status = data?["status"] as String?;
+    if (status == "tunnel" || status == "redirect") {
+      var url = data?["url"] as String? ?? "";
+      if (url.isNotEmpty) {
+        if (url.startsWith("/")) url = "$baseUrl$url"; // served file
+        return url;
       }
-    } catch (e) {
-      developer.log("Cobalt audio fetch failed: $e", name: "VideoAPI");
     }
-    return null;
+    throw Exception(data?["detail"]?.toString() ?? "Gagal mengekstrak audio");
   }
 
   /// HEAD check tunnel URL to verify it will return actual data

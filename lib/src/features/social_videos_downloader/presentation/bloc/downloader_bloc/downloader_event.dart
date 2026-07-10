@@ -23,6 +23,16 @@ class DownloaderSaveVideo extends DownloaderEvent {
   List<Object?> get props => [video];
 }
 
+/// Resolve an audio-only (MP3) URL on demand, then download it.
+class DownloaderGetAudio extends DownloaderEvent {
+  final Video video;
+
+  const DownloaderGetAudio({required this.video});
+
+  @override
+  List<Object?> get props => [video];
+}
+
 class LoadOldDownloads extends DownloaderEvent {
   @override
   List<Object?> get props => [];

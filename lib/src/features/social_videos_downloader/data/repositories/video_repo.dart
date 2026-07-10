@@ -28,6 +28,18 @@ class VideoRepo implements VideoBaseRepo {
   }
 
   @override
+  Future<Either<Failure, String>> getAudioUrl(String videoLink) async {
+    try {
+      final url = await remoteDataSource.getAudioUrl(videoLink);
+      return Right(url);
+    } on DioException catch (error) {
+      return Left(ErrorHandler.handle(error).failure);
+    } catch (error) {
+      return Left(ServerFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, String>> saveVideo({
     required String videoLink,
     required String savePath,

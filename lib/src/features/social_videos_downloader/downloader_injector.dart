@@ -4,6 +4,7 @@ import 'package:anr_saver/src/features/social_videos_downloader/domain/repositor
 import '../../container_injector.dart';
 import 'data/data_source/video_remote_data_source.dart';
 import 'domain/usecase/get_video_usecase.dart';
+import 'domain/usecase/get_audio_url_usecase.dart';
 import 'domain/usecase/save_video_usecase.dart';
 import 'presentation/bloc/downloader_bloc/downloader_bloc.dart';
 import 'presentation/bloc/theme_bloc/theme_bloc.dart';
@@ -21,12 +22,19 @@ void initDownloader() {
   sl.registerLazySingleton<GetVideoUseCase>(
     () => GetVideoUseCase(videoRepo: sl()),
   );
+  sl.registerLazySingleton<GetAudioUrlUseCase>(
+    () => GetAudioUrlUseCase(videoRepo: sl()),
+  );
   sl.registerLazySingleton<SaveVideoUseCase>(
     () => SaveVideoUseCase(videoRepo: sl()),
   );
   // downloader bloc
   sl.registerFactory(
-    () => DownloaderBloc(getVideoUseCase: sl(), saveVideoUseCase: sl()),
+    () => DownloaderBloc(
+      getVideoUseCase: sl(),
+      getAudioUrlUseCase: sl(),
+      saveVideoUseCase: sl(),
+    ),
   );
   // theme bloc
   sl.registerFactory(
