@@ -71,6 +71,8 @@ def _cookie_args(url: str) -> list:
 class VideoRequest(BaseModel):
     url: str
     quality: str = "720"
+    # mode: "video" (default) or "audio" (extract MP3)
+    mode: str = "video"
 
 
 def _check_key(x_api_key: str = Header()):
@@ -104,19 +106,38 @@ def get_info(req: VideoRequest, x_api_key: str = Header()):
 
         data = json.loads(result["stdout"])
 
-        formats = []
+        # Collect the best available filesize per video height (whether the
+        # stream is muxed or video-only — we can always merge with audio).
+        by_height: dict = {}
+        has_audio = False
         for f in data.get("formats", []):
-            if f.get("vcodec", "none") != "none" and f.get("acodec", "none") != "none":
-                formats.append({
-                    "format_id": f["format_id"],
-                    "ext": f.get("ext", "mp4"),
-                    "height": f.get("height"),
-                    "filesize": f.get("filesize") or f.get("filesize_approx"),
-                    "quality": f"{f.get('height', '?')}p",
-                })
+            vcodec = f.get("vcodec", "none")
+            acodec = f.get("acodec", "none")
+            if acodec != "none" and vcodec == "none":
+                has_audio = True  # an audio-only stream exists
+            if vcodec == "none":
+                continue
+            h = f.get("height")
+            if not h:
+                continue
+            size = f.get("filesize") or f.get("filesize_approx")
+            prev = by_height.get(h)
+            if prev is None or (size and (prev["filesize"] or 0) < size):
+                by_height[h] = {
+                    "height": h,
+                    "ext": "mp4",
+                    "filesize": size,
+                    "quality": f"{h}p",
+                }
 
-        # Sort by height descending
-        formats.sort(key=lambda x: x.get("height") or 0, reverse=True)
+        formats = sorted(by_height.values(),
+                         key=lambda x: x["height"], reverse=True)[:8]
+
+        # Always offer audio-only (MP3) when the source has any audio stream.
+        audio_entry = None
+        if has_audio or not formats:
+            audio_entry = {"quality": "Audio (MP3)", "ext": "mp3",
+                           "height": 0, "filesize": None, "mode": "audio"}
 
         return {
             "status": "ok",
@@ -124,7 +145,8 @@ def get_info(req: VideoRequest, x_api_key: str = Header()):
             "thumbnail": data.get("thumbnail", ""),
             "duration": data.get("duration"),
             "uploader": data.get("uploader", ""),
-            "formats": formats[:8],
+            "formats": formats,
+            "audio": audio_entry,
         }
     except Exception as e:
         raise HTTPException(500, str(e))
@@ -136,6 +158,10 @@ def get_download(req: VideoRequest, x_api_key: str = Header()):
     _check_key(x_api_key)
 
     try:
+        # Audio-only: extract to MP3 server-side and serve the file.
+        if req.mode == "audio":
+            return _download_audio(req.url)
+
         height = req.quality.replace("p", "")
 
         # YouTube's googlevideo URLs are locked to the extractor's IP, so a
@@ -230,12 +256,52 @@ def _download_merged(url: str, height: str) -> dict:
         raise
 
 
+def _download_audio(url: str) -> dict:
+    """Extract audio to MP3 server-side and serve the file."""
+    token = uuid.uuid4().hex
+    out_tmpl = str(DOWNLOAD_DIR / f"{token}.%(ext)s")
+    try:
+        result = _run_ytdlp([
+            "-f", "bestaudio/best",
+            "--extract-audio", "--audio-format", "mp3", "--audio-quality", "0",
+            "-o", out_tmpl,
+            "--no-playlist",
+            "--print", "after_move:%(title)s|@@|%(filepath)s",
+            *_cookie_args(url),
+            url,
+        ], timeout=180)
+
+        out = result["stdout"].strip()
+        title, _, path_str = out.rpartition("|@@|")
+        title = title.strip() or "audio"
+        final_path = Path(path_str.strip()) if path_str.strip() else None
+
+        if not final_path or not final_path.exists() or final_path.stat().st_size == 0:
+            matches = [m for m in DOWNLOAD_DIR.glob(f"{token}.mp3")
+                       if m.stat().st_size > 0]
+            if not matches:
+                raise Exception("Audio extraction failed: empty output")
+            final_path = matches[0]
+
+        return {
+            "status": "tunnel",
+            "url": f"/files/{final_path.name}",
+            "title": title,
+            "filename": f"{title}.mp3",
+        }
+    except Exception:
+        for m in DOWNLOAD_DIR.glob(f"{token}.*"):
+            m.unlink(missing_ok=True)
+        raise
+
+
 @app.get("/files/{filename}")
 def serve_file(filename: str):
     filepath = DOWNLOAD_DIR / filename
     if not filepath.exists() or filepath.stat().st_size == 0:
         raise HTTPException(404, "File not found")
-    return FileResponse(filepath, media_type="video/mp4", filename=filename)
+    media = "audio/mpeg" if filename.lower().endswith(".mp3") else "video/mp4"
+    return FileResponse(filepath, media_type=media, filename=filename)
 
 
 @app.get("/health")
