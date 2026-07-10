@@ -10,6 +10,7 @@ import 'package:anr_saver/src/features/social_videos_downloader/presentation/wid
 
 import '../../../../../config/routes_manager.dart';
 import '../../../../../core/common_widgets/app_background.dart';
+import '../../../../../core/common_widgets/skeleton_loader.dart';
 import '../../../../../core/common_widgets/toast.dart';
 import '../../../../../core/utils/app_colors.dart';
 import '../../../../../core/utils/app_enums.dart';
@@ -32,11 +33,30 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController videoLinkController = TextEditingController();
   BannerAd? _bannerAd;
+  bool _skeletonOpen = false;
 
   @override
   void initState() {
     super.initState();
     _loadBannerAd();
+  }
+
+  void _showSkeletonSheet(BuildContext context) {
+    if (_skeletonOpen) return;
+    _skeletonOpen = true;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const DownloadSheetSkeleton(),
+    ).whenComplete(() => _skeletonOpen = false);
+  }
+
+  void _dismissSkeletonSheet() {
+    if (_skeletonOpen) {
+      Navigator.of(context, rootNavigator: true).pop();
+      _skeletonOpen = false;
+    }
   }
 
   void _loadBannerAd() {
@@ -80,6 +100,15 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
         SafeArea(
           child: BlocConsumer<DownloaderBloc, DownloaderState>(
             listener: (context, state) {
+              // Show a skeleton bottom sheet while fetching video info.
+              if (state is DownloaderGetVideoLoading) {
+                _showSkeletonSheet(context);
+              }
+              // Any terminal fetch state dismisses the skeleton first.
+              if (state is DownloaderGetVideoSuccess ||
+                  state is DownloaderGetVideoFailure) {
+                _dismissSkeletonSheet();
+              }
               if (state is DownloaderSaveVideoLoading) {
                 Navigator.of(context).pushNamed(Routes.downloads);
               }

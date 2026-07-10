@@ -89,75 +89,61 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
       headers["Authorization"] = "Api-Key ${ApiConfig.cobaltApiKey}";
     }
 
-    // Try with configured quality first, then fallback to lower qualities
-    final qualities = [ApiConfig.videoQuality, "720", "480", "360"];
-    final tried = <String>{};
+    // Single request: Cobalt auto-selects the best stream up to videoQuality.
+    // (Looping every lower quality per instance was the main fetch slowdown.)
+    final response = await dioHelper.post(
+      path: AppConstants.cobaltEndpoint,
+      baseUrl: instanceUrl,
+      customHeaders: headers,
+      // Short connect timeout: skip dead instances fast in the fallback chain
+      connectTimeout:
+          const Duration(seconds: ApiConfig.cobaltConnectTimeoutSeconds),
+      receiveTimeout:
+          const Duration(seconds: ApiConfig.cobaltReceiveTimeoutSeconds),
+      data: {
+        "url": videoLink,
+        "videoQuality": ApiConfig.videoQuality,
+        "filenameStyle": "basic",
+        "downloadMode": "auto",
+      },
+    );
 
-    for (final quality in qualities) {
-      if (tried.contains(quality)) continue;
-      tried.add(quality);
+    if (response.data == null) {
+      throw Exception("Empty response from Cobalt");
+    }
 
-      final response = await dioHelper.post(
-        path: AppConstants.cobaltEndpoint,
-        baseUrl: instanceUrl,
-        customHeaders: headers,
-        // Short connect timeout: skip dead instances fast in the fallback chain
-        connectTimeout:
-            const Duration(seconds: ApiConfig.cobaltConnectTimeoutSeconds),
-        receiveTimeout:
-            const Duration(seconds: ApiConfig.cobaltReceiveTimeoutSeconds),
-        data: {
-          "url": videoLink,
-          "videoQuality": quality,
-          "filenameStyle": "basic",
-          "downloadMode": "auto",
-        },
-      );
+    final data = response.data as Map<String, dynamic>;
+    final status = data["status"] as String?;
 
-      if (response.data == null) continue;
-
-      final data = response.data as Map<String, dynamic>;
-      final status = data["status"] as String?;
-
-      if (status == "error") {
-        final error = data["error"];
-        final code = error is Map ? error["code"]?.toString() : error?.toString();
-        // YouTube login required - won't help to retry with lower quality
-        if (code != null && code.contains("youtube.login")) {
-          throw Exception(
-              "Video ini membutuhkan autentikasi YouTube di server. "
-              "Hubungi admin server Cobalt untuk konfigurasi cookies YouTube.");
-        }
-        // Link invalid
-        if (code != null && code.contains("link.invalid")) {
-          throw Exception("Link tidak valid atau tidak didukung.");
-        }
-        // Fetch empty - content not accessible
-        if (code != null && code.contains("fetch.empty")) {
-          throw Exception(
-              "Tidak bisa mengakses konten. Video mungkin private, "
-              "dihapus, atau platform membutuhkan cookies di server.");
-        }
-        throw Exception("Cobalt error: $code");
+    if (status == "error") {
+      final error = data["error"];
+      final code = error is Map ? error["code"]?.toString() : error?.toString();
+      if (code != null && code.contains("youtube.login")) {
+        throw Exception(
+            "Video ini membutuhkan autentikasi YouTube di server. "
+            "Hubungi admin server Cobalt untuk konfigurasi cookies YouTube.");
       }
-
-      // For tunnel/redirect: verify the URL is valid before returning
-      if (status == "tunnel" || status == "redirect") {
-        final tunnelUrl = data["url"] as String? ?? "";
-        if (tunnelUrl.isNotEmpty) {
-          final isValid = await _validateTunnelUrl(tunnelUrl);
-          if (isValid) {
-            return VideoModel.fromCobalt(data, videoLink);
-          }
-          developer.log("Tunnel invalid at $quality, trying lower", name: "VideoAPI");
-          continue;
-        }
+      if (code != null && code.contains("link.invalid")) {
+        throw Exception("Link tidak valid atau tidak didukung.");
       }
+      if (code != null && code.contains("fetch.empty")) {
+        throw Exception(
+            "Tidak bisa mengakses konten. Video mungkin private, "
+            "dihapus, atau platform membutuhkan cookies di server.");
+      }
+      throw Exception("Cobalt error: $code");
+    }
 
-      // Picker status (galleries) - no need to validate
-      if (status == "picker") {
+    if (status == "tunnel" || status == "redirect") {
+      final tunnelUrl = data["url"] as String? ?? "";
+      if (tunnelUrl.isNotEmpty && await _validateTunnelUrl(tunnelUrl)) {
         return VideoModel.fromCobalt(data, videoLink);
       }
+      throw Exception("Tunnel tidak valid untuk video ini.");
+    }
+
+    if (status == "picker") {
+      return VideoModel.fromCobalt(data, videoLink);
     }
 
     throw Exception(

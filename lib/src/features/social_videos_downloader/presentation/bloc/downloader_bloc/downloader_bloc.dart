@@ -70,11 +70,13 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
       return;
     }
 
-    final selectedLink = event.video.videoLinks
-        .firstWhere((videoLink) => videoLink.quality == event.selectedLink)
-        .link;
+    final selectedVideoLink = event.video.videoLinks
+        .firstWhere((videoLink) => videoLink.quality == event.selectedLink);
+    final selectedLink = selectedVideoLink.link;
     final path = await _getPathById(event.video.rId,
-        quality: event.selectedLink, originalLink: selectedLink);
+        quality: event.selectedLink,
+        originalLink: selectedLink,
+        isAudio: selectedVideoLink.isAudio);
 
     final platform = DownloadItem.detectPlatform(event.video.srcUrl);
     final videoTitle = _extractVideoTitle(event.video.title);
@@ -187,12 +189,14 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
   }
 
   Future<String> _getPathById(String id,
-      {String? quality, String? originalLink}) async {
+      {String? quality, String? originalLink, bool isAudio = false}) async {
     final appPath = await DirHelper.getAppPath();
 
     String extension = ".mp4";
 
-    if (originalLink != null && _isImageUrl(originalLink)) {
+    if (isAudio) {
+      extension = ".mp3";
+    } else if (originalLink != null && _isImageUrl(originalLink)) {
       if (originalLink.toLowerCase().contains('.jpg') ||
           originalLink.toLowerCase().contains('.jpeg')) {
         extension = ".jpg";

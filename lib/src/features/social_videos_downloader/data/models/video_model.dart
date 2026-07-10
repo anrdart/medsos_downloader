@@ -140,6 +140,8 @@ class VideoModel extends Video {
         videoLinks.add(VideoLinkModel(
           quality: "🎵 Audio Only",
           link: audioUrl,
+          isAudio: true,
+          mode: 'audio',
         ));
       }
     }
@@ -209,6 +211,8 @@ class VideoModel extends Video {
       videoLinks.add(VideoLinkModel(
         quality: "🎵 Audio/Music",
         link: musicUrl,
+        isAudio: true,
+        mode: 'audio',
       ));
     }
 
