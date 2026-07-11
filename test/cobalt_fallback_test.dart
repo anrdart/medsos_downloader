@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:anr_saver/src/core/utils/api_config.dart';
+import 'package:el_saver/src/core/utils/api_config.dart';
 
 // Self-check: fallback chain is well-formed and timeouts stay short.
 void main() {

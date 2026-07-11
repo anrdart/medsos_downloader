@@ -15,18 +15,27 @@ class ThemeState {
       ));
 
   static ThemeData getAppTheme(bool isDark) {
+    final primary = isDark ? AppColors.primaryColorLight : AppColors.primaryColor;
     return ThemeData(
       fontFamily: 'Poppins',
       brightness: isDark ? Brightness.dark : Brightness.light,
       scaffoldBackgroundColor: isDark
           ? AppColors.scaffoldBackgroundColorDark
           : AppColors.scaffoldBackgroundColorLight,
-      primaryColor: AppColors.primaryColor,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.primaryColor,
+      primaryColor: primary,
+      cardColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+      colorScheme: (isDark ? const ColorScheme.dark() : const ColorScheme.light())
+          .copyWith(
+            primary: primary,
+            secondary: isDark ? AppColors.accentTealLight : AppColors.accentTeal,
+            surface: isDark ? AppColors.cardDark : AppColors.cardLight,
+            error: isDark ? AppColors.destructiveDark : AppColors.destructive,
+          ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: isDark ? AppColors.cardDark : AppColors.primaryColor,
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.light,
+          statusBarIconBrightness: isDark ? Brightness.light : Brightness.light,
           statusBarBrightness: Brightness.light,
         ),
         elevation: 0.0,
@@ -54,7 +63,8 @@ class ThemeState {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           textStyle: getRegularStyle(color: AppColors.white),
-          backgroundColor: AppColors.primaryColor,
+          backgroundColor: primary,
+          foregroundColor: AppColors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(5),
           ),
@@ -69,25 +79,27 @@ class ThemeState {
                 ? AppColors.whiteWithOpacity
                 : AppColors.blackWithOpacity),
         errorStyle: getLightStyle(color: AppColors.red),
-        fillColor: isDark ? Colors.grey[800] : AppColors.white,
+        fillColor: isDark ? AppColors.inputDark : AppColors.white,
         filled: true,
-        errorBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: AppColors.red, width: 1.5),
+        errorBorder: OutlineInputBorder(
+          borderSide:
+              BorderSide(color: isDark ? AppColors.destructiveDark : AppColors.red, width: 1.5),
         ),
-        focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: AppColors.primaryColor, width: 1.5),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: primary, width: 1.5),
         ),
-        focusedErrorBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: AppColors.red, width: 1.5),
+        focusedErrorBorder: OutlineInputBorder(
+          borderSide:
+              BorderSide(color: isDark ? AppColors.destructiveDark : AppColors.red, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(
-              color: isDark ? Colors.grey[600]! : Colors.grey[300]!,
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
               width: 1.0),
         ),
       ),
       progressIndicatorTheme:
-          const ProgressIndicatorThemeData(color: AppColors.primaryColor),
+          ProgressIndicatorThemeData(color: primary),
     );
   }
 }

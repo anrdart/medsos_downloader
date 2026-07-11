@@ -1,4 +1,4 @@
-# ANR Saver — Backend (Cobalt + yt-dlp + Cookie Sync)
+# EL-Saver — Backend (Cobalt + yt-dlp + Cookie Sync)
 
 Three services the Flutter app talks to:
 
@@ -15,13 +15,13 @@ Cobalt runs in Docker; the two Python services run via systemd.
 Ubuntu/Debian, run as root:
 
 ```bash
-git clone <this-repo> anrsaver && cd anrsaver/server
+git clone <this-repo> el-saver && cd el-saver/server
 VPS_IP=<your.vps.ip> sudo -E bash install-vps.sh
 ```
 
 The script installs Docker + Python + ffmpeg, starts Cobalt via compose,
 sets up the venv + two systemd units, opens the firewall, and prints health
-checks. Config lives in `/opt/anrsaver/.env` (copied from `.env.example`).
+checks. Config lives in `/opt/el-saver/.env` (copied from `.env.example`).
 
 **Also open ports 9000/9002/9005 in your cloud provider's firewall**
 (GCP VPC / AWS security group) — the OS `ufw` rule alone is not enough.
@@ -47,7 +47,7 @@ still reads the JSON form from `cookies.json`.
 ```bash
 systemctl status ytdlp-api cookie-sync
 journalctl -u ytdlp-api -f
-cd /opt/anrsaver/server && docker compose logs -f cobalt
+cd /opt/el-saver/server && docker compose logs -f cobalt
 ```
 
 ## Health

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/domain/entities/video.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/domain/entities/video_link.dart';
+import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video.dart';
+import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video_link.dart';
 
 import '../../../../../../core/common_widgets/custom_elevated_button.dart';
 import '../../../../../../core/utils/app_strings.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:anr_saver/src/core/media_query.dart';
+import 'package:el_saver/src/core/media_query.dart';
 
 class CircularLoaderWithOverlay extends StatelessWidget {
   const CircularLoaderWithOverlay({super.key});

@@ -1,7 +1,7 @@
-name: anr_saver
-description: "ANR Saver - Your Ultimate Video Saver"
+name: el_saver
+description: "EL-Saver - Your Ultimate Video Saver"
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
-version: 1.6.0+8
+version: 1.8.0+11
 
 environment:
   sdk: ">=3.4.3 <4.0.0"
@@ -54,16 +54,16 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  image_path: "assets/launcher/android/mipmap-xxxhdpi/ic_launcher.png"
+  image_path: "assets/launcher/ic_launcher_source.png"
   min_sdk_android: 21
   web:
     generate: true
-    image_path: "assets/launcher/android/mipmap-xxxhdpi/ic_launcher.png"
-    background_color: "#2196F3"
-    theme_color: "#2196F3"
+    image_path: "assets/launcher/ic_launcher_source.png"
+    background_color: "#0C1222"
+    theme_color: "#29A37A"
   windows:
     generate: true
-    image_path: "assets/launcher/android/mipmap-xxxhdpi/ic_launcher.png"
+    image_path: "assets/launcher/ic_launcher_source.png"
     icon_size: 48
 
 flutter:

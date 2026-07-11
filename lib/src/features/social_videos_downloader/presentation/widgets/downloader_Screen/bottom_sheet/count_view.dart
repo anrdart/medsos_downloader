@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/domain/entities/video.dart';
+import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../../core/utils/app_colors.dart';

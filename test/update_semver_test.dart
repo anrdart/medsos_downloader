@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:anr_saver/src/core/services/update_service.dart';
+import 'package:el_saver/src/core/services/update_service.dart';
 
 void main() {
   test('semver: remote newer', () {

@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:anr_saver/src/core/services/permission_service.dart';
+import 'package:el_saver/src/core/services/permission_service.dart';
 import '../../config/routes_manager.dart';
 import 'dart:developer' as developer;
 
@@ -20,15 +20,15 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212), // Dark background
+      backgroundColor: const Color(0xFF0C1222), // Dark background
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF1E1E1E),
-              Color(0xFF121212),
+              Color(0xFF111A2E),
+              Color(0xFF0C1222),
             ],
           ),
         ),
@@ -44,10 +44,10 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1F1F1F), // Dark container
+                      color: const Color(0xFF111A2E), // Dark container
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: const Color(0xFF333333),
+                        color: const Color(0xFF222E44),
                         width: 1,
                       ),
                       boxShadow: [
@@ -74,7 +74,7 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                           'We need to setup a few permissions for the best experience:',
                           style: TextStyle(
                             fontSize: 15,
-                            color: Color(0xFFB0B0B0), // Light gray text
+                            color: Color(0xFF7588A3), // Light gray text
                             height: 1.4,
                           ),
                         ),
@@ -122,11 +122,11 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF1976D2)
+                                    color: const Color(0xFF29A37A)
                                         .withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: const Color(0xFF1976D2)
+                                      color: const Color(0xFF29A37A)
                                           .withOpacity(0.4),
                                     ),
                                   ),
@@ -134,7 +134,7 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                                     children: [
                                       Icon(
                                         Icons.info_outline,
-                                        color: Color(0xFF42A5F5),
+                                        color: Color(0xFF33CC99),
                                         size: 20,
                                       ),
                                       SizedBox(width: 12),
@@ -143,7 +143,7 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                                           'This will only take a moment and is required for the app to work properly.',
                                           style: TextStyle(
                                             fontSize: 13,
-                                            color: Color(0xFF42A5F5),
+                                            color: Color(0xFF33CC99),
                                             height: 1.3,
                                           ),
                                         ),
@@ -168,7 +168,7 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 16),
                                   side: const BorderSide(
-                                    color: Color(0xFF444444),
+                                    color: Color(0xFF222E44),
                                     width: 1.5,
                                   ),
                                   shape: RoundedRectangleBorder(
@@ -180,7 +180,7 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFFB0B0B0),
+                                    color: Color(0xFF7588A3),
                                   ),
                                 ),
                               ),
@@ -192,13 +192,13 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                                 onPressed:
                                     _isLoading ? null : _setupPermissions,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1976D2),
+                                  backgroundColor: const Color(0xFF29A37A),
                                   foregroundColor: Colors.white,
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 16),
                                   elevation: 4,
                                   shadowColor:
-                                      const Color(0xFF1976D2).withOpacity(0.4),
+                                      const Color(0xFF29A37A).withOpacity(0.4),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -248,11 +248,11 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
       decoration: BoxDecoration(
         color: isCompleted
             ? Colors.green.withOpacity(0.15)
-            : const Color(0xFF2A2A2A), // Dark item background
+            : const Color(0xFF1A2433), // Dark item background
         border: Border.all(
           color: isCompleted
               ? Colors.green
-              : const Color(0xFF444444), // Dark border
+              : const Color(0xFF222E44), // Dark border
           width: 1.5,
         ),
         borderRadius: BorderRadius.circular(16),
@@ -262,11 +262,11 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isCompleted ? Colors.green : const Color(0xFF1976D2),
+              color: isCompleted ? Colors.green : const Color(0xFF29A37A),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: (isCompleted ? Colors.green : const Color(0xFF1976D2))
+                  color: (isCompleted ? Colors.green : const Color(0xFF29A37A))
                       .withOpacity(0.4),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
@@ -327,7 +327,7 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                   description,
                   style: const TextStyle(
                     fontSize: 13,
-                    color: Color(0xFFB0B0B0), // Light gray for dark theme
+                    color: Color(0xFF7588A3), // Light gray for dark theme
                     height: 1.3,
                   ),
                 ),

@@ -1,4 +1,4 @@
-import 'package:anr_saver/src/features/social_videos_downloader/domain/entities/video_stats.dart';
+import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video_stats.dart';
 
 class VideoStatsModel extends VideoStats {
   const VideoStatsModel({

@@ -67,9 +67,9 @@ class DirHelper {
 
     final lower = filePath.toLowerCase();
     if (_isImageFile(lower)) {
-      await Gal.putImage(filePath, album: 'ANR Saver');
+      await Gal.putImage(filePath, album: 'EL-Saver');
     } else {
-      await Gal.putVideo(filePath, album: 'ANR Saver');
+      await Gal.putVideo(filePath, album: 'EL-Saver');
     }
   }
 
@@ -114,7 +114,7 @@ class DirHelper {
 
       if (apkPath != null && await File(apkPath).exists()) {
         final cacheDir = await getTemporaryDirectory();
-        final copiedApkPath = path.join(cacheDir.path, 'ANRSaver.apk');
+        final copiedApkPath = path.join(cacheDir.path, 'ELSaver.apk');
 
         await File(apkPath).copy(copiedApkPath);
 
@@ -129,10 +129,10 @@ class DirHelper {
                   XFile(copiedApkPath,
                       mimeType: 'application/vnd.android.package-archive')
                 ],
-                text: 'ANR Saver - Ultimate Video Downloader!\n\n'
+                text: 'EL-Saver - Ultimate Video Downloader!\n\n'
                     'Download from TikTok, Instagram, YouTube, Facebook, RedNote\n'
                     'Install this APK to start downloading!',
-                subject: 'ANR Saver - Video Downloader App',
+                subject: 'EL-Saver - Video Downloader App',
               ),
             );
 
@@ -158,7 +158,7 @@ class DirHelper {
 
   static Future<String?> _findAPKPath() async {
     try {
-      const packageName = 'com.ekalliptus.anrsaver';
+      const packageName = 'com.ekalliptus.saver';
 
       List<String> possiblePaths = [
         '/data/app/~~*/$packageName-*/base.apk',
@@ -213,10 +213,10 @@ class DirHelper {
   static Future<void> _shareAppInfo() async {
     await SharePlus.instance.share(
       ShareParams(
-        text: 'ANR Saver - Ultimate Video Downloader!\n\n'
+        text: 'EL-Saver - Ultimate Video Downloader!\n\n'
             'Download videos from TikTok, Instagram, YouTube, Facebook, RedNote\n'
             'Multiple quality options, save to gallery, dark/light theme',
-        subject: 'ANR Saver - Ultimate Video Downloader',
+        subject: 'EL-Saver - Ultimate Video Downloader',
       ),
     );
   }

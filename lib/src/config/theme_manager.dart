@@ -66,18 +66,20 @@ ThemeData getAppTheme() {
       labelStyle: getRegularStyle(color: AppColors.blackWithOpacity),
       hintStyle: getRegularStyle(color: AppColors.blackWithOpacity),
       errorStyle: getLightStyle(color: AppColors.red),
-      fillColor: AppColors.light,
+      fillColor: AppColors.inputLight,
       filled: true,
       errorBorder: const OutlineInputBorder(
         borderSide: BorderSide(color: AppColors.red, width: 1.5),
       ),
-      focusedBorder: const OutlineInputBorder(
-        borderSide: BorderSide(color: AppColors.black, width: 1.5),
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: AppColors.primaryColor, width: 1.5),
       ),
       focusedErrorBorder: const OutlineInputBorder(
         borderSide: BorderSide(color: AppColors.red, width: 1.5),
       ),
-      enabledBorder: InputBorder.none,
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: AppColors.borderLight, width: 1.0),
+      ),
     ),
     progressIndicatorTheme:
         const ProgressIndicatorThemeData(color: AppColors.primaryColor),

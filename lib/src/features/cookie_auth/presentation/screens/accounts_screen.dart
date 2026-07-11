@@ -22,7 +22,7 @@ class AccountsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: const Color(0xFF0C1222),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A1A2E),
         title: const Text(
@@ -194,7 +194,7 @@ class _UpdateSectionState extends State<_UpdateSection> {
           ),
           const SizedBox(height: 12),
           _infoRow("Versi", "v$_version ($_buildNumber)"),
-          _infoRow("Package", "com.ekalliptus.anrsaver"),
+          _infoRow("Package", "com.ekalliptus.saver"),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,

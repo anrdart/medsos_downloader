@@ -3,9 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
-import 'package:anr_saver/src/core/common_widgets/circular_loader_with_overlay.dart';
-import 'package:anr_saver/src/core/utils/app_strings.dart';
-import 'package:anr_saver/src/core/providers/language_provider.dart';
+import 'package:el_saver/src/core/common_widgets/circular_loader_with_overlay.dart';
+import 'package:el_saver/src/core/utils/app_strings.dart';
+import 'package:el_saver/src/core/providers/language_provider.dart';
 import '../../../../config/routes_manager.dart';
 import '../bloc/downloader_bloc/downloader_bloc.dart';
 import '../widgets/downloader_Screen/downloader_screen_body.dart';

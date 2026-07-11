@@ -143,7 +143,7 @@ class UpdateService {
   Future<String?> downloadUpdate(String url, {Function(double)? onProgress}) async {
     try {
       final dir = await getTemporaryDirectory();
-      final savePath = '${dir.path}/anr_saver_update.apk';
+      final savePath = '${dir.path}/el_saver_update.apk';
 
       // Delete old file if exists
       final oldFile = File(savePath);
@@ -166,7 +166,7 @@ class UpdateService {
           responseType: ResponseType.stream,
           headers: {
             "Accept": "application/vnd.android.package-archive,*/*",
-            "User-Agent": "ANRSaver/1.0",
+            "User-Agent": "ELSaver/1.0",
           },
         ),
       );

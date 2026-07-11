@@ -3,10 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'firebase_options.dart';
-import 'package:anr_saver/bloc_observer.dart';
-import 'package:anr_saver/src/container_injector.dart';
-import 'package:anr_saver/src/my_app.dart';
-import 'package:anr_saver/src/core/services/language_service.dart';
+import 'package:el_saver/bloc_observer.dart';
+import 'package:el_saver/src/container_injector.dart';
+import 'package:el_saver/src/my_app.dart';
+import 'package:el_saver/src/core/services/language_service.dart';
 import 'dart:developer' as developer;
 
 void main() async {

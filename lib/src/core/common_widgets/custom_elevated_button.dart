@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:anr_saver/src/core/utils/app_colors.dart';
+import 'package:el_saver/src/core/utils/app_colors.dart';
 
 import '../media_query.dart';
 

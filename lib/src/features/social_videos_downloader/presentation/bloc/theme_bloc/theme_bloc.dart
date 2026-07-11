@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/services.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/presentation/bloc/theme_bloc/theme_event.dart';
+import 'package:el_saver/src/features/social_videos_downloader/presentation/bloc/theme_bloc/theme_event.dart';
 
 import '../../../../../core/utils/app_colors.dart';
 import '../../../../../core/utils/font_manager.dart';

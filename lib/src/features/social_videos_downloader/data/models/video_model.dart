@@ -1,6 +1,6 @@
-import 'package:anr_saver/src/features/social_videos_downloader/data/models/video_link_model.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/data/models/video_stats_model.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/domain/entities/video.dart';
+import 'package:el_saver/src/features/social_videos_downloader/data/models/video_link_model.dart';
+import 'package:el_saver/src/features/social_videos_downloader/data/models/video_stats_model.dart';
+import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video.dart';
 
 class VideoModel extends Video {
   const VideoModel({

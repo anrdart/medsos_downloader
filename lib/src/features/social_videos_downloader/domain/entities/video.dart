@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/domain/entities/video_stats.dart';
+import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video_stats.dart';
 
 import 'video_link.dart';
 

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Simple dark background - no logo to avoid double splash -->
+<!-- Simple navy background - no logo to avoid double splash -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Simple dark background to match Flutter splash -->
+    <!-- Simple navy background to match Flutter splash -->
     <item>
         <shape>
             <gradient
-                android:startColor="#1A1A1A"
-                android:endColor="#0D0D0D"
+                android:startColor="#0D1525"
+                android:endColor="#080C16"
                 android:angle="315"
                 android:type="linear" />
         </shape>

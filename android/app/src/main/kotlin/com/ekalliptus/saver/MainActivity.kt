@@ -1,4 +1,4 @@
-package com.example.anr_saver
+package com.ekalliptus.saver
 
 import android.app.PictureInPictureParams
 import android.content.res.Configuration
@@ -15,7 +15,7 @@ class MainActivity: FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        
+
         methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
         methodChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
@@ -24,16 +24,16 @@ class MainActivity: FlutterActivity() {
                 }
                 "enterPipMode" -> {
                     val aspectRatio = call.argument<Double>("aspectRatio") ?: 16.0 / 9.0
-                    val title = call.argument<String>("title") ?: "ANR Saver"
+                    val title = call.argument<String>("title") ?: "EL-Saver"
                     val subtitle = call.argument<String>("subtitle") ?: "Video Player"
-                    
+
                     result.success(enterPipMode(aspectRatio, title, subtitle))
                 }
                 "updatePipParams" -> {
                     val aspectRatio = call.argument<Double>("aspectRatio") ?: 16.0 / 9.0
-                    val title = call.argument<String>("title") ?: "ANR Saver"
+                    val title = call.argument<String>("title") ?: "EL-Saver"
                     val subtitle = call.argument<String>("subtitle") ?: "Video Player"
-                    
+
                     updatePipParams(aspectRatio, title, subtitle)
                     result.success(null)
                 }
@@ -60,16 +60,16 @@ class MainActivity: FlutterActivity() {
     private fun enterPipMode(aspectRatio: Double, title: String, subtitle: String): Boolean {
         return try {
             if (!isPipSupported()) return false
-            
+
             val rational = Rational(
                 (aspectRatio * 1000).toInt(),
                 1000
             )
-            
+
             val params = PictureInPictureParams.Builder()
                 .setAspectRatio(rational)
                 .build()
-            
+
             enterPictureInPictureMode(params)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -81,16 +81,16 @@ class MainActivity: FlutterActivity() {
     private fun updatePipParams(aspectRatio: Double, title: String, subtitle: String) {
         try {
             if (!isPipSupported() || !isInPictureInPictureMode) return
-            
+
             val rational = Rational(
                 (aspectRatio * 1000).toInt(),
                 1000
             )
-            
+
             val params = PictureInPictureParams.Builder()
                 .setAspectRatio(rational)
                 .build()
-            
+
             setPictureInPictureParams(params)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -113,15 +113,15 @@ class MainActivity: FlutterActivity() {
         newConfig: Configuration
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        
+
         // Notify Flutter about PIP mode change
         methodChannel?.invokeMethod("onPipModeChanged", isInPictureInPictureMode)
     }
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        
+
         // Notify Flutter that user pressed home button
         methodChannel?.invokeMethod("onUserLeaveHint", null)
     }
-} 
+}

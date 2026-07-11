@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dark gradient splash screen with ANR logo for API 21+ -->
+<!-- Navy gradient splash screen with EL-Saver logo for API 21+ -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Dark gradient background -->
+    <!-- Navy gradient background -->
     <item>
         <shape>
             <gradient
-                android:startColor="#1A1A1A"
-                android:endColor="#0D0D0D"
+                android:startColor="#0D1525"
+                android:endColor="#080C16"
                 android:angle="315"
                 android:type="linear" />
         </shape>
     </item>
 
-    <!-- ANR Logo with gradient circular background -->
+    <!-- EL-Saver logo with gradient circular background -->
     <item>
         <layer-list>
             <!-- Gradient circle background -->
             <item android:gravity="center">
                 <shape android:shape="oval">
                     <gradient
-                        android:startColor="#1A2196F3"
-                        android:endColor="#0D2196F3"
+                        android:startColor="#1A29A37A"
+                        android:endColor="#0D29A37A"
                         android:angle="315"
                         android:type="linear" />
                     <stroke
                         android:width="2dp"
-                        android:color="#4D2196F3" />
+                        android:color="#4D29A37A" />
                     <size android:width="180dp" android:height="180dp" />
                 </shape>
             </item>
@@ -33,7 +33,7 @@
             <item android:gravity="center">
                 <bitmap
                     android:gravity="center"
-                    android:src="@drawable/anr_logo" />
+                    android:src="@drawable/el_logo" />
             </item>
         </layer-list>
     </item>

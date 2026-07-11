@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/data/models/video_link_model.dart';
+import 'package:el_saver/src/features/social_videos_downloader/data/models/video_link_model.dart';
 
 void main() {
   test('VideoLinkModel audio flags round-trip via fromJson', () {

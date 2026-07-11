@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/utils/app_assets.dart';
+import '../../../../../core/utils/app_strings.dart';
 
 class AppBarWithLogo extends StatelessWidget {
   const AppBarWithLogo({super.key});
@@ -25,9 +26,9 @@ class AppBarWithLogo extends StatelessWidget {
             },
           ),
           const SizedBox(width: 12),
-          const Text(
-            'ANR Saver',
-            style: TextStyle(
+          Text(
+            AppStrings.appName,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.white,

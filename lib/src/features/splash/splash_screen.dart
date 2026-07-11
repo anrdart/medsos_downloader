@@ -4,10 +4,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:anr_saver/src/core/utils/app_strings.dart';
-import 'package:anr_saver/src/core/services/permission_service.dart';
-import 'package:anr_saver/src/core/providers/language_provider.dart';
-import 'package:anr_saver/src/container_injector.dart';
+import 'package:el_saver/src/core/utils/app_strings.dart';
+import 'package:el_saver/src/core/services/permission_service.dart';
+import 'package:el_saver/src/core/providers/language_provider.dart';
+import 'package:el_saver/src/container_injector.dart';
 import '../../config/routes_manager.dart';
 import '../../core/utils/app_assets.dart';
 import '../../core/utils/app_constants.dart';
@@ -41,7 +41,7 @@ class _SplashScreenState extends State<SplashScreen>
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: Color(0xFF0A0A0A),
+        systemNavigationBarColor: Color(0xFF0C1222),
       ),
     );
 
@@ -193,7 +193,7 @@ class _SplashScreenState extends State<SplashScreen>
     return Consumer<LanguageProvider>(
       builder: (context, _, child) {
         return Scaffold(
-          backgroundColor: const Color(0xFF0A0A0A),
+          backgroundColor: const Color(0xFF0C1222),
           body: SizedBox.expand(
             child: Column(
               children: [

@@ -3,10 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
-import 'package:anr_saver/src/core/utils/app_colors.dart';
-import 'package:anr_saver/src/core/utils/app_strings.dart';
-import 'package:anr_saver/src/core/providers/language_provider.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/presentation/bloc/theme_bloc/theme_event.dart';
+import 'package:el_saver/src/core/utils/app_colors.dart';
+import 'package:el_saver/src/core/utils/app_strings.dart';
+import 'package:el_saver/src/core/providers/language_provider.dart';
+import 'package:el_saver/src/features/social_videos_downloader/presentation/bloc/theme_bloc/theme_event.dart';
 
 import '../../bloc/theme_bloc/theme_bloc.dart';
 

@@ -5,7 +5,7 @@ class AppStrings {
       LanguageService.instance.currentLanguage;
 
   // App Information
-  static String get appName => "ANR Saver";
+  static String get appName => "EL-Saver";
   static String get appSlogan {
     switch (_currentLanguage) {
       case SupportedLanguage.indonesian:

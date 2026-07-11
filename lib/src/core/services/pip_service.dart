@@ -83,7 +83,7 @@ class PipService {
     try {
       final Map<String, dynamic> params = {
         'aspectRatio': aspectRatio ?? 16.0 / 9.0,
-        'title': title ?? 'ANR Saver',
+        'title': title ?? 'EL-Saver',
         'subtitle': subtitle ?? 'Video Player',
       };
 
@@ -115,7 +115,7 @@ class PipService {
     try {
       final Map<String, dynamic> params = {
         'aspectRatio': aspectRatio ?? 16.0 / 9.0,
-        'title': title ?? 'ANR Saver',
+        'title': title ?? 'EL-Saver',
         'subtitle': subtitle ?? 'Video Player',
       };
 

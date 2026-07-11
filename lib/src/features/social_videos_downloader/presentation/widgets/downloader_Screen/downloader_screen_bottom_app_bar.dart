@@ -1,8 +1,8 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:anr_saver/src/core/media_query.dart';
-import 'package:anr_saver/src/core/utils/app_strings.dart';
+import 'package:el_saver/src/core/media_query.dart';
+import 'package:el_saver/src/core/utils/app_strings.dart';
 
 import '../../../../../core/utils/app_colors.dart';
 import 'animated_toggle_button.dart';

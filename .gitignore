@@ -256,3 +256,6 @@ scripts/.firebase-sa.json
 **/service-account*.json
 **/*firebase-adminsdk*.json
 lib/config/*.json
+
+# Local agent / IDE
+.zcode/

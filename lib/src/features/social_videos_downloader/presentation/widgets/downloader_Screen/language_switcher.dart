@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:anr_saver/src/core/media_query.dart';
+import 'package:el_saver/src/core/media_query.dart';
 import '../../../../../core/common_widgets/container_with_shadows.dart';
 import '../../../../../core/services/language_service.dart';
 import '../../../../../core/providers/language_provider.dart';

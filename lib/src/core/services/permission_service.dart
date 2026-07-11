@@ -96,18 +96,18 @@ class PermissionService {
           barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF1F1F1F), // Dark background
+              backgroundColor: const Color(0xFF111A2E), // Dark background
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFF333333)),
+                side: const BorderSide(color: Color(0xFF222E44)),
               ),
               title: const Row(
                 children: [
-                  Icon(Icons.video_library, color: Color(0xFF42A5F5), size: 28),
+                  Icon(Icons.video_library, color: Color(0xFF33CC99), size: 28),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Welcome to ANR Saver!',
+                      'Welcome to EL-Saver!',
                       style: TextStyle(fontSize: 18, color: Colors.white),
                     ),
                   ),
@@ -119,7 +119,7 @@ class PermissionService {
                 children: [
                   Text(
                     'To provide the best experience, we need to set up some permissions:',
-                    style: TextStyle(fontSize: 14, color: Color(0xFFB0B0B0)),
+                    style: TextStyle(fontSize: 14, color: Color(0xFF7588A3)),
                   ),
                   SizedBox(height: 16),
                   _PermissionItem(
@@ -146,7 +146,7 @@ class PermissionService {
                   SizedBox(height: 16),
                   Text(
                     'This will only take a moment and is required for the app to work properly.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
+                    style: TextStyle(fontSize: 12, color: Color(0xFF7588A3)),
                   ),
                 ],
               ),
@@ -154,7 +154,7 @@ class PermissionService {
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFFB0B0B0),
+                    foregroundColor: const Color(0xFF7588A3),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 12),
                   ),
@@ -166,7 +166,7 @@ class PermissionService {
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(true),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1976D2),
+                    backgroundColor: const Color(0xFF29A37A),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 24, vertical: 12),
@@ -195,7 +195,7 @@ class PermissionService {
       icon: Icons.folder,
       title: 'Gallery Permission',
       description:
-          'ANR Saver needs access to your device gallery to save downloaded videos.',
+          'EL-Saver needs access to your device gallery to save downloaded videos.',
       onRequest: () async {
         // For Android 13+ (API 33+), request specific media permissions
         var status = await Permission.videos.request();
@@ -222,7 +222,7 @@ class PermissionService {
       icon: Icons.folder_open,
       title: 'Akses Semua File',
       description:
-          'ANR Saver memerlukan akses untuk membaca, memodifikasi, dan menghapus semua file di ponsel ini atau perangkat penyimpanan yang tersambung.',
+          'EL-Saver memerlukan akses untuk membaca, memodifikasi, dan menghapus semua file di ponsel ini atau perangkat penyimpanan yang tersambung.',
       onRequest: () async {
         var status = await Permission.manageExternalStorage.request();
         return status.isGranted;
@@ -237,13 +237,13 @@ class PermissionService {
       icon: Icons.install_mobile,
       title: 'Install Unknown Apps',
       description:
-          'Allow ANR Saver to install app updates automatically for seamless updates.',
+          'Allow EL-Saver to install app updates automatically for seamless updates.',
       onRequest: () async {
         try {
           // Open install unknown apps settings
           const intent = AndroidIntent(
             action: 'android.settings.MANAGE_UNKNOWN_APP_SOURCES',
-            data: 'package:com.ekalliptus.anrsaver',
+            data: 'package:com.ekalliptus.saver',
           );
 
           await intent.launch();
@@ -282,14 +282,14 @@ class PermissionService {
           barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF1F1F1F), // Dark background
+              backgroundColor: const Color(0xFF111A2E), // Dark background
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFF333333)),
+                side: const BorderSide(color: Color(0xFF222E44)),
               ),
               title: Row(
                 children: [
-                  Icon(icon, color: const Color(0xFF42A5F5), size: 24),
+                  Icon(icon, color: const Color(0xFF33CC99), size: 24),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -305,13 +305,13 @@ class PermissionService {
                   Text(
                     description,
                     style:
-                        const TextStyle(fontSize: 14, color: Color(0xFFB0B0B0)),
+                        const TextStyle(fontSize: 14, color: Color(0xFF7588A3)),
                   ),
                   if (isOptional) ...[
                     const SizedBox(height: 8),
                     const Text(
                       '(This permission is optional)',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
+                      style: TextStyle(fontSize: 12, color: Color(0xFF7588A3)),
                     ),
                   ],
                 ],
@@ -337,7 +337,7 @@ class PermissionService {
                     Navigator.of(context).pop(granted);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1976D2),
+                    backgroundColor: const Color(0xFF29A37A),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 12),
@@ -369,10 +369,10 @@ class PermissionService {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1F1F1F), // Dark background
+          backgroundColor: const Color(0xFF111A2E), // Dark background
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: Color(0xFF333333)),
+            side: const BorderSide(color: Color(0xFF222E44)),
           ),
           title: Text(
             title,
@@ -380,13 +380,13 @@ class PermissionService {
           ),
           content: Text(
             instruction,
-            style: const TextStyle(color: Color(0xFFB0B0B0)),
+            style: const TextStyle(color: Color(0xFF7588A3)),
           ),
           actions: [
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1976D2),
+                backgroundColor: const Color(0xFF29A37A),
                 foregroundColor: Colors.white,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -413,10 +413,10 @@ class PermissionService {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1F1F1F), // Dark background
+          backgroundColor: const Color(0xFF111A2E), // Dark background
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: Color(0xFF333333)),
+            side: const BorderSide(color: Color(0xFF222E44)),
           ),
           title: const Row(
             children: [
@@ -431,8 +431,8 @@ class PermissionService {
             ],
           ),
           content: const Text(
-            'All permissions have been configured. You can now enjoy all features of ANR Saver!',
-            style: TextStyle(fontSize: 14, color: Color(0xFFB0B0B0)),
+            'All permissions have been configured. You can now enjoy all features of EL-Saver!',
+            style: TextStyle(fontSize: 14, color: Color(0xFF7588A3)),
           ),
           actions: [
             ElevatedButton(
@@ -478,7 +478,7 @@ class _PermissionItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: const Color(0xFF42A5F5)),
+          Icon(icon, size: 20, color: const Color(0xFF33CC99)),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -495,7 +495,7 @@ class _PermissionItem extends StatelessWidget {
                   description,
                   style: const TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF888888),
+                    color: Color(0xFF7588A3),
                   ),
                 ),
               ],

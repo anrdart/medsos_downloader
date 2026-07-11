@@ -1,8 +1,8 @@
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/data/models/video_model.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/domain/entities/video.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/domain/mappers.dart';
+import 'package:el_saver/src/features/social_videos_downloader/data/models/video_model.dart';
+import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video.dart';
+import 'package:el_saver/src/features/social_videos_downloader/domain/mappers.dart';
 
 import '../../../../core/error/error_handler.dart';
 import '../../../../core/error/failure.dart';

@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
-import 'package:anr_saver/src/core/media_query.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/presentation/widgets/downloader_Screen/downloader_screen_supported_platforms.dart';
-import 'package:anr_saver/src/features/social_videos_downloader/presentation/widgets/downloader_Screen/language_switcher.dart';
+import 'package:el_saver/src/core/media_query.dart';
+import 'package:el_saver/src/features/social_videos_downloader/presentation/widgets/downloader_Screen/downloader_screen_supported_platforms.dart';
+import 'package:el_saver/src/features/social_videos_downloader/presentation/widgets/downloader_Screen/language_switcher.dart';
 
 import '../../../../../config/routes_manager.dart';
 import '../../../../../core/common_widgets/app_background.dart';
