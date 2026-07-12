@@ -194,11 +194,6 @@ class _RecentDownloadsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final recent = downloads.take(3).toList();
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
-    final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
-    final tileColor = isDark ? AppColors.cardDark : AppColors.cardLight;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: context.width * 0.05),
@@ -209,8 +204,8 @@ class _RecentDownloadsSection extends StatelessWidget {
             children: [
               Text(
                 AppStrings.recentDownloads,
-                style: TextStyle(
-                  color: fgColor,
+                style: const TextStyle(
+                  color: Colors.white,
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
@@ -222,14 +217,14 @@ class _RecentDownloadsSection extends StatelessWidget {
                   children: [
                     Text(
                       AppStrings.viewAll,
-                      style: TextStyle(
-                        color: AppColors.primaryColor,
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Icon(Icons.arrow_forward_ios, color: AppColors.primaryColor, size: 10),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 10),
                   ],
                 ),
               ),
@@ -241,13 +236,13 @@ class _RecentDownloadsSection extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: tileColor,
+                color: Colors.black.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Text(
                 AppStrings.noDownloadsYet,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: mutedColor, fontSize: 13),
+                style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 13),
               ),
             )
           else
@@ -267,18 +262,12 @@ class _RecentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
-    final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
-    final tileColor = isDark ? AppColors.cardDark : AppColors.cardLight;
-
     return GestureDetector(
       onTap: () => Navigator.of(context).pushNamed(Routes.downloads),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: tileColor,
+          color: Colors.black.withOpacity(0.2),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -288,7 +277,7 @@ class _RecentTile extends StatelessWidget {
             Expanded(
               child: Text(
                 item.videoTitle.isNotEmpty ? item.videoTitle : item.video.title,
-                style: TextStyle(color: fgColor, fontSize: 12),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -297,7 +286,7 @@ class _RecentTile extends StatelessWidget {
             Text(
               item.platformName,
               style: TextStyle(
-                color: mutedColor,
+                color: Colors.white.withOpacity(0.4),
                 fontSize: 10,
               ),
             ),
