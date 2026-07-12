@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/update_service.dart';
 import '../utils/app_colors.dart';
@@ -25,6 +26,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
   _Phase _phase = _Phase.info;
   double _progress = 0;
   String _errorMsg = "";
+  String? _apkPath;
 
   Future<void> _startDownload() async {
     setState(() => _phase = _Phase.downloading);
@@ -46,6 +48,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
       return;
     }
 
+    _apkPath = path;
     setState(() => _phase = _Phase.installing);
     final installed = await widget.updateService.installUpdate(path);
 
@@ -58,7 +61,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
       } else {
         setState(() {
           _phase = _Phase.error;
-          _errorMsg = "Instalasi gagal. Coba install manual.";
+          _errorMsg = "Instalasi otomatis gagal. Coba install manual.";
         });
       }
     }
@@ -66,8 +69,14 @@ class _UpdateDialogState extends State<UpdateDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = theme.cardColor;
+    final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
+    final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
+
     return Dialog(
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -76,11 +85,11 @@ class _UpdateDialogState extends State<UpdateDialog> {
           children: [
             _buildIcon(),
             const SizedBox(height: 16),
-            _buildTitle(),
+            _buildTitle(fgColor),
             const SizedBox(height: 8),
-            _buildSubtitle(),
+            _buildSubtitle(mutedColor),
             const SizedBox(height: 16),
-            _buildBody(),
+            _buildBody(mutedColor),
           ],
         ),
       ),
@@ -125,7 +134,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
     }
   }
 
-  Widget _buildTitle() {
+  Widget _buildTitle(Color fgColor) {
     final titles = {
       _Phase.info: AppStrings.updateAvailable,
       _Phase.downloading: "Mengunduh Update...",
@@ -135,11 +144,11 @@ class _UpdateDialogState extends State<UpdateDialog> {
     };
     return Text(
       titles[_phase]!,
-      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+      style: TextStyle(color: fgColor, fontSize: 18, fontWeight: FontWeight.w600),
     );
   }
 
-  Widget _buildSubtitle() {
+  Widget _buildSubtitle(Color mutedColor) {
     final info = widget.updateInfo;
     if (_phase == _Phase.downloading) {
       return Text(
@@ -149,20 +158,20 @@ class _UpdateDialogState extends State<UpdateDialog> {
     }
     if (_phase == _Phase.error) {
       return Text(_errorMsg, textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13));
+        style: TextStyle(color: mutedColor, fontSize: 13));
     }
     if (_phase == _Phase.done) {
-      return Text("Installer terbuka. Ikuti instruksi di layar.",
+      return Text("Update sedang diinstall. Tunggu sebentar...",
         textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13));
+        style: TextStyle(color: mutedColor, fontSize: 13));
     }
     return Text(
       "v${info.currentVersionName} → v${info.versionName}",
-      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+      style: TextStyle(color: mutedColor, fontSize: 13),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(Color mutedColor) {
     final info = widget.updateInfo;
 
     switch (_phase) {
@@ -174,11 +183,11 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: mutedColor.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(info.changelog,
-                  style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12)),
+                  style: TextStyle(color: mutedColor, fontSize: 12)),
               ),
               const SizedBox(height: 16),
             ],
@@ -199,7 +208,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(AppStrings.later, style: TextStyle(color: Colors.white.withOpacity(0.4))),
+                child: Text(AppStrings.later, style: TextStyle(color: mutedColor)),
               ),
             ],
           ],
@@ -213,22 +222,22 @@ class _UpdateDialogState extends State<UpdateDialog> {
               child: LinearProgressIndicator(
                 value: _progress > 0 ? _progress : null,
                 minHeight: 6,
-                backgroundColor: Colors.white.withOpacity(0.1),
+                backgroundColor: mutedColor.withOpacity(0.1),
                 valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
               ),
             ),
             const SizedBox(height: 12),
             Text(
               "Jangan tutup dialog ini",
-              style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11),
+              style: TextStyle(color: mutedColor, fontSize: 11),
             ),
           ],
         );
 
       case _Phase.installing:
         return Text(
-          "Membuka installer...",
-          style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
+          "Menginstall update secara otomatis...",
+          style: TextStyle(color: mutedColor, fontSize: 12),
         );
 
       case _Phase.done:
@@ -254,14 +263,32 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text("Tutup", style: TextStyle(color: Colors.white.withOpacity(0.4))),
+                    onPressed: _openManualInstaller,
+                    child: Text("Install Manual", style: TextStyle(color: mutedColor)),
                   ),
                 ),
               ],
             ),
           ],
         );
+    }
+  }
+
+  /// Fallback: open the APK with the system package installer (shows popup).
+  Future<void> _openManualInstaller() async {
+    if (_apkPath == null) return;
+    // Re-download if path lost
+    final path = _apkPath!;
+    if (!await File(path).exists()) return;
+    try {
+      // Use Android intent to open the system installer
+      await widget.updateService.installUpdateManual(path);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Tidak bisa membuka installer")),
+        );
+      }
     }
   }
 }
