@@ -27,20 +27,21 @@ class ThemeState {
       colorScheme: (isDark ? const ColorScheme.dark() : const ColorScheme.light())
           .copyWith(
             primary: primary,
-            secondary: isDark ? AppColors.accentTealLight : AppColors.accentTeal,
+            secondary: isDark ? AppColors.accentVioletLight : AppColors.accentViolet,
             surface: isDark ? AppColors.cardDark : AppColors.cardLight,
             error: isDark ? AppColors.destructiveDark : AppColors.destructive,
           ),
       appBarTheme: AppBarTheme(
         backgroundColor: isDark ? AppColors.cardDark : AppColors.primaryColor,
+        foregroundColor: AppColors.white,
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
-          statusBarIconBrightness: isDark ? Brightness.light : Brightness.light,
+          statusBarIconBrightness: Brightness.light,
           statusBarBrightness: Brightness.light,
         ),
         elevation: 0.0,
         centerTitle: false,
-        iconTheme: IconThemeData(color: AppColors.white),
+        iconTheme: const IconThemeData(color: AppColors.white),
       ),
       textTheme: TextTheme(
         headlineLarge: getBlackTitleStyle(

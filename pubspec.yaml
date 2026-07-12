@@ -1,7 +1,7 @@
 name: el_saver
 description: "EL-Saver - Your Ultimate Video Saver"
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
-version: 1.8.0+11
+version: 1.8.1+12
 
 environment:
   sdk: ">=3.4.3 <4.0.0"
@@ -59,8 +59,8 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: "assets/launcher/ic_launcher_source.png"
-    background_color: "#0C1222"
-    theme_color: "#29A37A"
+    background_color: "#121212"
+    theme_color: "#7C3AED"
   windows:
     generate: true
     image_path: "assets/launcher/ic_launcher_source.png"

@@ -96,14 +96,14 @@ class PermissionService {
           barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF111A2E), // Dark background
+              backgroundColor: const Color(0xFF1E1E1E), // Dark background
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFF222E44)),
+                side: const BorderSide(color: Color(0xFF333333)),
               ),
               title: const Row(
                 children: [
-                  Icon(Icons.video_library, color: Color(0xFF33CC99), size: 28),
+                  Icon(Icons.video_library, color: Color(0xFF9B6CFB), size: 28),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -119,7 +119,7 @@ class PermissionService {
                 children: [
                   Text(
                     'To provide the best experience, we need to set up some permissions:',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF7588A3)),
+                    style: TextStyle(fontSize: 14, color: Color(0xFFB0B0B0)),
                   ),
                   SizedBox(height: 16),
                   _PermissionItem(
@@ -146,7 +146,7 @@ class PermissionService {
                   SizedBox(height: 16),
                   Text(
                     'This will only take a moment and is required for the app to work properly.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF7588A3)),
+                    style: TextStyle(fontSize: 12, color: Color(0xFFB0B0B0)),
                   ),
                 ],
               ),
@@ -154,7 +154,7 @@ class PermissionService {
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF7588A3),
+                    foregroundColor: const Color(0xFFB0B0B0),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 12),
                   ),
@@ -166,7 +166,7 @@ class PermissionService {
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(true),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF29A37A),
+                    backgroundColor: const Color(0xFF7C3AED),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 24, vertical: 12),
@@ -282,14 +282,14 @@ class PermissionService {
           barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF111A2E), // Dark background
+              backgroundColor: const Color(0xFF1E1E1E), // Dark background
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFF222E44)),
+                side: const BorderSide(color: Color(0xFF333333)),
               ),
               title: Row(
                 children: [
-                  Icon(icon, color: const Color(0xFF33CC99), size: 24),
+                  Icon(icon, color: const Color(0xFF9B6CFB), size: 24),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -305,13 +305,13 @@ class PermissionService {
                   Text(
                     description,
                     style:
-                        const TextStyle(fontSize: 14, color: Color(0xFF7588A3)),
+                        const TextStyle(fontSize: 14, color: Color(0xFFB0B0B0)),
                   ),
                   if (isOptional) ...[
                     const SizedBox(height: 8),
                     const Text(
                       '(This permission is optional)',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF7588A3)),
+                      style: TextStyle(fontSize: 12, color: Color(0xFFB0B0B0)),
                     ),
                   ],
                 ],
@@ -337,7 +337,7 @@ class PermissionService {
                     Navigator.of(context).pop(granted);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF29A37A),
+                    backgroundColor: const Color(0xFF7C3AED),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 12),
@@ -369,10 +369,10 @@ class PermissionService {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF111A2E), // Dark background
+          backgroundColor: const Color(0xFF1E1E1E), // Dark background
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: Color(0xFF222E44)),
+            side: const BorderSide(color: Color(0xFF333333)),
           ),
           title: Text(
             title,
@@ -380,13 +380,13 @@ class PermissionService {
           ),
           content: Text(
             instruction,
-            style: const TextStyle(color: Color(0xFF7588A3)),
+            style: const TextStyle(color: Color(0xFFB0B0B0)),
           ),
           actions: [
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF29A37A),
+                backgroundColor: const Color(0xFF7C3AED),
                 foregroundColor: Colors.white,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -413,10 +413,10 @@ class PermissionService {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF111A2E), // Dark background
+          backgroundColor: const Color(0xFF1E1E1E), // Dark background
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: Color(0xFF222E44)),
+            side: const BorderSide(color: Color(0xFF333333)),
           ),
           title: const Row(
             children: [
@@ -432,7 +432,7 @@ class PermissionService {
           ),
           content: const Text(
             'All permissions have been configured. You can now enjoy all features of EL-Saver!',
-            style: TextStyle(fontSize: 14, color: Color(0xFF7588A3)),
+            style: TextStyle(fontSize: 14, color: Color(0xFFB0B0B0)),
           ),
           actions: [
             ElevatedButton(
@@ -478,7 +478,7 @@ class _PermissionItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: const Color(0xFF33CC99)),
+          Icon(icon, size: 20, color: const Color(0xFF9B6CFB)),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -495,7 +495,7 @@ class _PermissionItem extends StatelessWidget {
                   description,
                   style: const TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF7588A3),
+                    color: Color(0xFFB0B0B0),
                   ),
                 ),
               ],

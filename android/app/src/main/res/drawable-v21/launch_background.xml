@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Navy gradient splash screen with EL-Saver logo for API 21+ -->
+<!-- Matte black splash screen with EL-Saver logo for API 21+ -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Navy gradient background -->
+    <!-- Matte black gradient background -->
     <item>
         <shape>
             <gradient
-                android:startColor="#0D1525"
-                android:endColor="#080C16"
+                android:startColor="#1E1E1E"
+                android:endColor="#121212"
                 android:angle="315"
                 android:type="linear" />
         </shape>
@@ -19,13 +19,13 @@
             <item android:gravity="center">
                 <shape android:shape="oval">
                     <gradient
-                        android:startColor="#1A29A37A"
-                        android:endColor="#0D29A37A"
+                        android:startColor="#1A7C3AED"
+                        android:endColor="#0D7C3AED"
                         android:angle="315"
                         android:type="linear" />
                     <stroke
                         android:width="2dp"
-                        android:color="#4D29A37A" />
+                        android:color="#4D7C3AED" />
                     <size android:width="180dp" android:height="180dp" />
                 </shape>
             </item>
