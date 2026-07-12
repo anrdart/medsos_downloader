@@ -7,6 +7,7 @@ import '../core/utils/app_constants.dart';
 import '../features/cookie_auth/presentation/bloc/account_bloc.dart';
 import '../features/cookie_auth/presentation/bloc/account_event.dart';
 import '../features/cookie_auth/presentation/screens/accounts_screen.dart';
+import '../features/cookie_auth/presentation/screens/legal_screen.dart';
 import '../features/cookie_auth/presentation/screens/webview_login_screen.dart';
 import '../features/social_videos_downloader/presentation/screens/downloader_screen.dart';
 import '../features/social_videos_downloader/presentation/screens/downloads_screen.dart';
@@ -22,6 +23,7 @@ class Routes {
   static const String permissionSetup = "/permissionSetup";
   static const String accounts = "/accounts";
   static const String webviewLogin = "/webviewLogin";
+  static const String legal = "/legal";
 }
 
 class AppRounter {
@@ -71,6 +73,10 @@ class AppRounter {
             child: WebViewLoginScreen(platform: platform),
           ),
         );
+      case Routes.legal:
+        final tab = setting.arguments is int ? setting.arguments as int : 0;
+        return MaterialPageRoute(
+            builder: (context) => LegalScreen(initialTab: tab));
       default:
         developer.log('❌ Unknown route: ${setting.name}', name: 'AppRouter');
         return null;

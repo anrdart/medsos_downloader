@@ -117,10 +117,44 @@ class AccountsScreen extends StatelessWidget {
               }),
               const SizedBox(height: 24),
               const _UpdateSection(),
+              const SizedBox(height: 16),
+              _LegalLinks(mutedColor: mutedColor),
+              const SizedBox(height: 8),
             ],
           );
         },
       ),
+    );
+  }
+}
+
+class _LegalLinks extends StatelessWidget {
+  final Color mutedColor;
+  const _LegalLinks({required this.mutedColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        TextButton(
+          onPressed: () => Navigator.of(context)
+              .pushNamed(Routes.legal, arguments: 0),
+          child: Text(
+            "Kebijakan Privasi",
+            style: TextStyle(color: mutedColor, fontSize: 12, decoration: TextDecoration.underline),
+          ),
+        ),
+        Text("•", style: TextStyle(color: mutedColor, fontSize: 12)),
+        TextButton(
+          onPressed: () => Navigator.of(context)
+              .pushNamed(Routes.legal, arguments: 1),
+          child: Text(
+            "Ketentuan Layanan",
+            style: TextStyle(color: mutedColor, fontSize: 12, decoration: TextDecoration.underline),
+          ),
+        ),
+      ],
     );
   }
 }

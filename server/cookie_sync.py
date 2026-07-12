@@ -35,20 +35,19 @@ COBALT_CONTAINER = os.getenv("COBALT_CONTAINER", "cobalt")
 COOKIE_DIR = Path(os.getenv("COOKIE_DIR", "/opt/anrsaver/cookies"))
 
 VALID_PLATFORMS = {
-    "youtube", "instagram", "twitter", "reddit",
-    "facebook", "bilibili", "tiktok", "snapchat",
+    "youtube", "instagram", "twitter",
+    "facebook", "bilibili", "tiktok",
 }
 
 # yt-dlp cookie domains per platform (Netscape format needs a domain)
+# YouTube Music shares youtube cookies; Threads shares instagram cookies.
 _COOKIE_DOMAINS = {
     "youtube": ".youtube.com",
     "instagram": ".instagram.com",
     "twitter": ".twitter.com",
     "facebook": ".facebook.com",
-    "reddit": ".reddit.com",
     "bilibili": ".bilibili.com",
     "tiktok": ".tiktok.com",
-    "snapchat": ".snapchat.com",
 }
 
 

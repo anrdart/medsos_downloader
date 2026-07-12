@@ -14,27 +14,14 @@ class _State extends State<DownloaderScreenSupportedPlatforms> {
   late final ScrollController _ctrl;
 
   static const _platforms = [
-    _P("TikTok", "assets/images/tiktok.svg"),
-    _P("Instagram", "assets/images/instagram.svg"),
-    _P("YouTube", "assets/images/youtube.svg"),
-    _P("Twitter", "assets/images/twitter.svg"),
     _P("Facebook", "assets/images/facebook.svg"),
-    _P("Reddit", "assets/images/reddit.svg"),
-    _P("Pinterest", "assets/images/pinterest.svg"),
-    _P("Snapchat", "assets/images/snapchat.svg"),
-    _P("Bluesky", "assets/images/bluesky.svg"),
-    _P("Twitch", "assets/images/twitch.svg"),
-    _P("Vimeo", "assets/images/vimeo.svg"),
-    _P("SoundCloud", "assets/images/soundcloud.svg"),
-    _P("Tumblr", "assets/images/tumblr.svg"),
+    _P("Instagram", "assets/images/instagram.svg"),
+    _P("Threads", "assets/images/threads.svg"),
+    _P("Twitter/X", "assets/images/twitter.svg"),
+    _P("YouTube", "assets/images/youtube.svg"),
+    _P("YouTube Music", "assets/images/youtube_music.svg"),
+    _P("TikTok", "assets/images/tiktok.svg"),
     _P("Bilibili", "assets/images/bilibili.svg"),
-    _P("Dailymotion", "assets/images/dailymotion.svg"),
-    _P("VK", "assets/images/vk.svg"),
-    _P("OK.ru", "assets/images/ok.svg"),
-    _P("Rutube", "assets/images/rutube.svg"),
-    _P("Loom", "assets/images/loom.svg"),
-    _P("Streamable", "assets/images/streamable.svg"),
-    _P("Newgrounds", "assets/images/newgrounds.svg"),
   ];
 
   @override

@@ -312,27 +312,14 @@ class DownloadItemStatus extends StatelessWidget {
   }
 
   static const Map<SocialPlatform, Color> _platformColors = {
-    SocialPlatform.tiktok: Colors.black,
-    SocialPlatform.instagram: Colors.pink,
-    SocialPlatform.facebook: Colors.blue,
-    SocialPlatform.youtube: Colors.red,
+    SocialPlatform.facebook: Color(0xFF1877F2),
+    SocialPlatform.instagram: Color(0xFFE4405F),
+    SocialPlatform.threads: Colors.black,
     SocialPlatform.twitter: Color(0xFF1DA1F2),
-    SocialPlatform.reddit: Color(0xFFFF4500),
-    SocialPlatform.pinterest: Color(0xFFBD081C),
-    SocialPlatform.snapchat: Color(0xFFFFFC00),
-    SocialPlatform.bluesky: Color(0xFF0085FF),
-    SocialPlatform.twitch: Color(0xFF9146FF),
-    SocialPlatform.vimeo: Color(0xFF1AB7EA),
-    SocialPlatform.soundcloud: Color(0xFFFF5500),
-    SocialPlatform.tumblr: Color(0xFF35465C),
+    SocialPlatform.youtube: Color(0xFFFF0000),
+    SocialPlatform.youtubeMusic: Color(0xFFFF0000),
+    SocialPlatform.tiktok: Colors.black,
     SocialPlatform.bilibili: Color(0xFF00A1D6),
-    SocialPlatform.dailymotion: Color(0xFF0066DC),
-    SocialPlatform.vk: Color(0xFF4C75A3),
-    SocialPlatform.ok: Color(0xFFEE8208),
-    SocialPlatform.rutube: Color(0xFF1B1B1B),
-    SocialPlatform.loom: Color(0xFF625DF5),
-    SocialPlatform.streamable: Color(0xFF0B6AED),
-    SocialPlatform.newgrounds: Color(0xFFFDA238),
     SocialPlatform.unknown: Colors.grey,
   };
 

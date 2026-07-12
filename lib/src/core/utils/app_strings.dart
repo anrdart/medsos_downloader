@@ -271,43 +271,6 @@ class AppStrings {
     }
   }
 
-  // RedNote specific messages
-  static String get redNoteDetected {
-    switch (_currentLanguage) {
-      case SupportedLanguage.indonesian:
-        return "Konten RedNote terdeteksi!";
-      case SupportedLanguage.english:
-        return "RedNote content detected!";
-    }
-  }
-
-  static String get redNoteComingSoon {
-    switch (_currentLanguage) {
-      case SupportedLanguage.indonesian:
-        return "RedNote sekarang didukung! Mencoba mengekstrak konten...";
-      case SupportedLanguage.english:
-        return "RedNote is now supported! Trying to extract content...";
-    }
-  }
-
-  static String get redNoteDevelopment {
-    switch (_currentLanguage) {
-      case SupportedLanguage.indonesian:
-        return "Ekstraksi konten RedNote gagal. Silakan coba lagi nanti.";
-      case SupportedLanguage.english:
-        return "RedNote content extraction failed. Please try again later.";
-    }
-  }
-
-  static String get redNoteConfigGuide {
-    switch (_currentLanguage) {
-      case SupportedLanguage.indonesian:
-        return "Dukungan RedNote:\n✅ API dasar bekerja\n⚡ Fitur lanjutan tersedia dengan Apify";
-      case SupportedLanguage.english:
-        return "RedNote support:\n✅ Basic API working\n⚡ Enhanced features available with Apify";
-    }
-  }
-
   // Donation Dialog
   static String get supportDeveloper {
     switch (_currentLanguage) {
@@ -371,14 +334,18 @@ class AppStrings {
           return 'Facebook';
         case 'instagram':
           return 'Instagram';
+        case 'threads':
+          return 'Threads';
         case 'tiktok':
           return 'TikTok';
         case 'youtube':
           return 'YouTube';
-        case 'rednote':
-          return 'RedNote';
-        case 'snapchat':
-          return 'Snapchat';
+        case 'youtubemusic':
+          return 'YouTube Music';
+        case 'twitter':
+          return 'Twitter/X';
+        case 'bilibili':
+          return 'Bilibili';
         default:
           return platform;
       }

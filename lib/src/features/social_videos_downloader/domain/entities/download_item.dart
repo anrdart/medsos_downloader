@@ -103,6 +103,8 @@ class DownloadItem extends Equatable {
   static SocialPlatform detectPlatform(String url) {
     final u = url.toLowerCase();
 
+    // Order matters: check more-specific subdomains first
+    // (music.youtube.com contains youtube.com; threads.net is Meta).
     for (final entry in _urlPatterns.entries) {
       for (final pattern in entry.value) {
         if (u.contains(pattern)) return entry.key;
@@ -113,53 +115,27 @@ class DownloadItem extends Equatable {
   }
 
   static const Map<SocialPlatform, List<String>> _urlPatterns = {
+    SocialPlatform.youtubeMusic: ['music.youtube.com'],
+    SocialPlatform.threads: ['threads.net', 'threads.com'],
     SocialPlatform.tiktok: ['tiktok.com', 'douyin.com', 'v.douyin.com'],
     SocialPlatform.instagram: ['instagram.com'],
     SocialPlatform.facebook: ['facebook.com', 'fb.watch', 'fb.com'],
     SocialPlatform.youtube: ['youtube.com', 'youtu.be', 'youtube-nocookie.com'],
     SocialPlatform.twitter: ['twitter.com', 'x.com', 't.co'],
-    SocialPlatform.reddit: ['reddit.com', 'redd.it'],
-    SocialPlatform.pinterest: ['pinterest.com', 'pin.it'],
-    SocialPlatform.snapchat: ['snapchat.com'],
-    SocialPlatform.bluesky: ['bsky.app', 'bsky.social'],
-    SocialPlatform.twitch: ['twitch.tv', 'clips.twitch.tv'],
-    SocialPlatform.vimeo: ['vimeo.com'],
-    SocialPlatform.soundcloud: ['soundcloud.com'],
-    SocialPlatform.tumblr: ['tumblr.com'],
     SocialPlatform.bilibili: ['bilibili.com', 'b23.tv'],
-    SocialPlatform.dailymotion: ['dailymotion.com', 'dai.ly'],
-    SocialPlatform.vk: ['vk.com', 'vk.ru'],
-    SocialPlatform.ok: ['ok.ru'],
-    SocialPlatform.rutube: ['rutube.ru'],
-    SocialPlatform.loom: ['loom.com'],
-    SocialPlatform.streamable: ['streamable.com'],
-    SocialPlatform.newgrounds: ['newgrounds.com'],
   };
 
   static String platformNameOf(SocialPlatform p) => _platformNames[p] ?? "Unknown";
 
   static const Map<SocialPlatform, String> _platformNames = {
-    SocialPlatform.tiktok: "TikTok",
-    SocialPlatform.instagram: "Instagram",
     SocialPlatform.facebook: "Facebook",
-    SocialPlatform.youtube: "YouTube",
+    SocialPlatform.instagram: "Instagram",
+    SocialPlatform.threads: "Threads",
     SocialPlatform.twitter: "Twitter/X",
-    SocialPlatform.reddit: "Reddit",
-    SocialPlatform.pinterest: "Pinterest",
-    SocialPlatform.snapchat: "Snapchat",
-    SocialPlatform.bluesky: "Bluesky",
-    SocialPlatform.twitch: "Twitch",
-    SocialPlatform.vimeo: "Vimeo",
-    SocialPlatform.soundcloud: "SoundCloud",
-    SocialPlatform.tumblr: "Tumblr",
+    SocialPlatform.youtube: "YouTube",
+    SocialPlatform.youtubeMusic: "YouTube Music",
+    SocialPlatform.tiktok: "TikTok",
     SocialPlatform.bilibili: "Bilibili",
-    SocialPlatform.dailymotion: "Dailymotion",
-    SocialPlatform.vk: "VK",
-    SocialPlatform.ok: "OK.ru",
-    SocialPlatform.rutube: "Rutube",
-    SocialPlatform.loom: "Loom",
-    SocialPlatform.streamable: "Streamable",
-    SocialPlatform.newgrounds: "Newgrounds",
     SocialPlatform.unknown: "Unknown",
   };
 }
