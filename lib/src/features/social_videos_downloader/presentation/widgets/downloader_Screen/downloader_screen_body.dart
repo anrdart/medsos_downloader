@@ -212,13 +212,20 @@ class _RecentDownloadsSection extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () => Navigator.of(context).pushNamed(Routes.downloads),
-                child: Text(
-                  AppStrings.viewAll,
-                  style: TextStyle(
-                    color: AppColors.primaryColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      AppStrings.viewAll,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 10),
+                  ],
                 ),
               ),
             ],

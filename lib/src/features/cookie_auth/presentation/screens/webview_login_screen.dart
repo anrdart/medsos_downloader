@@ -104,17 +104,23 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = theme.cardColor;
+    final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
+    final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: cardColor,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
+          icon: Icon(Icons.close, color: fgColor),
           onPressed: () => Navigator.of(context).pop(false),
         ),
         title: Text(
           "Login ${_config.name}",
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          style: TextStyle(color: fgColor, fontSize: 16),
         ),
         actions: [
           if (_loading)
@@ -138,11 +144,11 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-            color: const Color(0xFF1A1A2E),
+            color: cardColor,
             child: Text(
               _statusText,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.5),
+                color: mutedColor,
                 fontSize: 12,
               ),
               textAlign: TextAlign.center,

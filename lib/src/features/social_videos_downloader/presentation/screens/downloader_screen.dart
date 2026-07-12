@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 import 'package:el_saver/src/core/common_widgets/circular_loader_with_overlay.dart';
+import 'package:el_saver/src/core/utils/app_colors.dart';
 import 'package:el_saver/src/core/utils/app_strings.dart';
 import 'package:el_saver/src/core/providers/language_provider.dart';
 import '../../../../config/routes_manager.dart';
@@ -40,13 +41,18 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final cardColor = theme.cardColor;
+        final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
+        final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
         return Consumer<LanguageProvider>(
           builder: (context, languageProvider, child) {
             return Dialog(
               backgroundColor: Colors.transparent,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cardColor,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: const [
                     BoxShadow(
@@ -62,13 +68,13 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
                     // Header
                     Container(
                       padding: const EdgeInsets.all(20),
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.blue, Colors.purple],
+                          colors: [AppColors.primaryColor, AppColors.accentViolet],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.only(
+                        borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(20),
                           topRight: Radius.circular(20),
                         ),
@@ -118,7 +124,7 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey[800],
+                              color: fgColor,
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -126,7 +132,7 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
                             AppStrings.useIndonesianEWallet,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: mutedColor,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -138,7 +144,7 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
                             height: 280,
                             decoration: BoxDecoration(
                               border: Border.all(
-                                  color: Colors.grey[300]!, width: 2),
+                                  color: isDark ? AppColors.borderDark : AppColors.borderLight, width: 2),
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: ClipRRect(
@@ -148,17 +154,17 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(
-                                    color: Colors.grey[100],
+                                    color: isDark ? AppColors.inputDark : AppColors.inputLight,
                                     child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
                                         Icon(Icons.error_outline,
-                                            color: Colors.grey[400], size: 40),
+                                            color: mutedColor, size: 40),
                                         const SizedBox(height: 10),
                                         Text(AppStrings.qrisImageNotFound,
                                             style: TextStyle(
-                                                color: Colors.grey[600])),
+                                                color: mutedColor)),
                                       ],
                                     ),
                                   );
@@ -174,12 +180,12 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
                             alignment: WrapAlignment.center,
                             spacing: 8,
                             children: [
-                              _buildPaymentChip('GoPay'),
-                              _buildPaymentChip('OVO'),
-                              _buildPaymentChip('DANA'),
-                              _buildPaymentChip('ShopeePay'),
-                              _buildPaymentChip('LinkAja'),
-                              _buildPaymentChip('Bank Apps'),
+                              _buildPaymentChip('GoPay', theme),
+                              _buildPaymentChip('OVO', theme),
+                              _buildPaymentChip('DANA', theme),
+                              _buildPaymentChip('ShopeePay', theme),
+                              _buildPaymentChip('LinkAja', theme),
+                              _buildPaymentChip('Bank Apps', theme),
                             ],
                           ),
 
@@ -190,7 +196,7 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: Colors.grey[700],
+                              color: mutedColor,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -207,19 +213,20 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
     );
   }
 
-  Widget _buildPaymentChip(String name) {
+  Widget _buildPaymentChip(String name, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
+        color: AppColors.primaryColor.withOpacity(isDark ? 0.15 : 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue[200]!),
+        border: Border.all(color: AppColors.primaryColor.withOpacity(0.3)),
       ),
       child: Text(
         name,
         style: TextStyle(
           fontSize: 10,
-          color: Colors.blue[700],
+          color: AppColors.primaryColor,
           fontWeight: FontWeight.w500,
         ),
       ),

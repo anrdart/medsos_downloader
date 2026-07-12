@@ -21,15 +21,22 @@ class AccountsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = theme.cardColor;
+    final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
+    final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text(
+        backgroundColor: cardColor,
+        title: Text(
           "Akun & Cookies",
-          style: TextStyle(color: Colors.white, fontSize: 18),
+          style: TextStyle(color: fgColor, fontSize: 18),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: fgColor),
       ),
       body: BlocConsumer<AccountBloc, AccountState>(
         listener: (context, state) {
@@ -64,20 +71,19 @@ class AccountsScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A2E),
+                  color: cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                  border: Border.all(color: borderColor),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline,
-                        color: Colors.white.withOpacity(0.5), size: 18),
+                    Icon(Icons.info_outline, color: mutedColor, size: 18),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         "Login ke platform untuk download konten yang membutuhkan autentikasi. Cookies disimpan terenkripsi di perangkat dan disinkronkan ke server Cobalt.",
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
+                          color: mutedColor,
                           fontSize: 12,
                         ),
                       ),
@@ -172,29 +178,36 @@ class _UpdateSectionState extends State<_UpdateSection> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = theme.cardColor;
+    final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
+    final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: cardColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.info_outline, color: Colors.white54, size: 18),
+              Icon(Icons.info_outline, color: mutedColor, size: 18),
               const SizedBox(width: 8),
               Text(
                 AppStrings.appInfo,
-                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                style: TextStyle(color: fgColor, fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          _infoRow("Versi", "v$_version ($_buildNumber)"),
-          _infoRow("Package", "com.ekalliptus.saver"),
+          _infoRow("Versi", "v$_version ($_buildNumber)", mutedColor),
+          _infoRow("Package", "com.ekalliptus.saver", mutedColor),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -220,14 +233,14 @@ class _UpdateSectionState extends State<_UpdateSection> {
     );
   }
 
-  Widget _infoRow(String label, String value) {
+  Widget _infoRow(String label, String value, Color mutedColor) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
-          Text(value, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12)),
+          Text(label, style: TextStyle(color: mutedColor, fontSize: 12)),
+          Text(value, style: TextStyle(color: mutedColor, fontSize: 12)),
         ],
       ),
     );
@@ -251,16 +264,23 @@ class _PlatformTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = theme.cardColor;
+    final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
+    final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: cardColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isLoggedIn
               ? AppColors.green.withOpacity(0.3)
-              : Colors.white.withOpacity(0.08),
+              : borderColor,
         ),
       ),
       child: Row(
@@ -271,12 +291,12 @@ class _PlatformTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: isLoggedIn
                   ? AppColors.green.withOpacity(0.15)
-                  : Colors.white.withOpacity(0.05),
+                  : mutedColor.withOpacity(0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(
               isLoggedIn ? Icons.check_circle : Icons.person_outline,
-              color: isLoggedIn ? AppColors.green : Colors.white54,
+              color: isLoggedIn ? AppColors.green : mutedColor,
               size: 22,
             ),
           ),
@@ -287,8 +307,8 @@ class _PlatformTile extends StatelessWidget {
               children: [
                 Text(
                   config.name,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: fgColor,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
@@ -301,7 +321,7 @@ class _PlatformTile extends StatelessWidget {
                   style: TextStyle(
                     color: isLoggedIn
                         ? AppColors.green.withOpacity(0.8)
-                        : Colors.white38,
+                        : mutedColor,
                     fontSize: 12,
                   ),
                 ),
