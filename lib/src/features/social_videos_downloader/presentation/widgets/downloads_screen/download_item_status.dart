@@ -4,13 +4,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../../config/routes_manager.dart';
 import '../../../../../core/utils/app_colors.dart';
 import '../../../../../core/utils/app_constants.dart';
 import '../../../../../core/utils/app_enums.dart';
 import '../../../../../core/utils/app_strings.dart';
 import '../../../domain/entities/download_item.dart';
 import '../../bloc/downloader_bloc/downloader_bloc.dart';
+import 'media_actions.dart';
 import 'save_to_gallery_dialog.dart';
 import 'video_status_widget.dart';
 
@@ -131,7 +131,8 @@ class DownloadItemStatus extends StatelessWidget {
             LinearProgressIndicator(
               value: currentItem.progress / 100,
               backgroundColor: AppColors.primaryColor.withOpacity(0.1),
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
             ),
             const SizedBox(height: 8),
             // Control buttons for downloading state
@@ -236,14 +237,11 @@ class DownloadItemStatus extends StatelessWidget {
               children: [
                 Expanded(
                   child: _IconOnlyButton(
-                    icon: Icons.play_circle_fill_rounded,
+                    icon: Icons.open_in_new_rounded,
                     color: AppColors.primaryColor,
-                    onPressed: () {
-                      Navigator.of(context).pushNamed(
-                        Routes.viewVideo,
-                        arguments: currentItem.path,
-                      );
-                    },
+                    tooltip: 'Open downloaded file',
+                    onPressed: () =>
+                        openDownloadedMedia(context, currentItem.path),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -417,16 +415,18 @@ class _IconOnlyButton extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onPressed;
+  final String? tooltip;
 
   const _IconOnlyButton({
     required this.icon,
     required this.color,
     required this.onPressed,
+    this.tooltip,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final button = Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onPressed,
@@ -441,14 +441,10 @@ class _IconOnlyButton extends StatelessWidget {
               width: 1,
             ),
           ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 20,
-          ),
+          child: Icon(icon, color: color, size: 20),
         ),
       ),
     );
+    return tooltip == null ? button : Tooltip(message: tooltip!, child: button);
   }
 }
-

@@ -12,17 +12,24 @@ Endpoints:
   GET  /health - Health check
 """
 
+import html
+import ipaddress
+import json
+import mimetypes
 import os
+import shutil
 import subprocess
 import sys
-import json
-import shutil
 import uuid
+from html.parser import HTMLParser
 from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 app = FastAPI(title="yt-dlp API", docs_url=None, redoc_url=None)
@@ -31,6 +38,10 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 API_KEY = os.getenv("API_KEY", "change-me")
 DOWNLOAD_DIR = Path(os.getenv("DOWNLOAD_DIR", "/tmp/ytdlp-downloads"))
 DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
+THREADS_MAX_BYTES = 2 * 1024 * 1024
+THREADS_TIMEOUT = 10
+THREADS_HOSTS = {"threads.net", "www.threads.net", "threads.com", "www.threads.com"}
 
 # Shared with cookie_sync.py: dir holding per-platform Netscape cookie files
 # (e.g. youtube.txt). Injected via yt-dlp --cookies so login-gated videos work.
@@ -51,17 +62,33 @@ def _resolve_ytdlp() -> str:
 YTDLP_BIN = _resolve_ytdlp()
 
 
+def _host_matches(host: str, domain: str) -> bool:
+    return host == domain or host.endswith(f".{domain}")
+
+
+def _cookie_platform(url: str):
+    """Map a URL hostname to its cookie file; YouTube Music uses YouTube."""
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except ValueError:
+        return None
+    routes = (
+        (("youtube.com", "youtu.be"), "youtube"),
+        (("instagram.com",), "instagram"),  # Threads public extraction uses no login cookies.
+        (("twitter.com", "x.com"), "twitter"),
+        (("facebook.com", "fb.watch"), "facebook"),
+        (("bilibili.tv", "biliintl.com"), "bilibili"),
+        (("tiktok.com",), "tiktok"),
+    )
+    for domains, platform in routes:
+        if any(_host_matches(host, domain) for domain in domains):
+            return platform
+    return None
+
+
 def _cookie_args(url: str) -> list:
     """Return ['--cookies', path] if a cookie file exists for this platform."""
-    platform = None
-    if "youtube.com" in url or "youtu.be" in url:
-        platform = "youtube"
-    elif "instagram.com" in url:
-        platform = "instagram"
-    elif "twitter.com" in url or "x.com" in url:
-        platform = "twitter"
-    elif "facebook.com" in url or "fb.watch" in url:
-        platform = "facebook"
+    platform = _cookie_platform(url)
     if not platform:
         return []
     cookie_file = COOKIE_DIR / f"{platform}.txt"
@@ -93,63 +120,332 @@ def _run_ytdlp(args: list, timeout: int = 30) -> dict:
         raise Exception("Request timed out")
 
 
+def _classify_error(message: str) -> str:
+    """Return a stable machine-readable type without changing HTTP status codes."""
+    text = message.lower()
+    if any(value in text for value in (
+        "confirm you’re not a bot", "confirm you're not a bot",
+        "confirm you are not a bot",
+    )):
+        return "bot-challenge"
+    if "http error 429" in text or "too many requests" in text:
+        return "temporarily-unavailable"
+    if any(value in text for value in (
+        "not available in your country", "available in your country",
+        "blocked in your country", "geo restricted", "geo-restricted",
+    )):
+        return "geo-restricted"
+    if "drm" in text:
+        return "drm-protected"
+    if any(value in text for value in (
+        "private video", "video is private", "private account", "login required",
+        "login to", "login page", "log in to", "sign in to confirm",
+        "registered users only", "age-restricted", "channel members",
+        "members-only", "members only", "authentication required",
+        "requires authentication",
+    )):
+        return "auth-required"
+    if any(value in text for value in (
+        "video unavailable", "content unavailable", "no longer available",
+        "has been removed", "not found", "unsupported url",
+    )):
+        return "unavailable"
+    if any(value in text for value in (
+        "timed out", "timeout", "temporarily unavailable", "connection reset",
+        "service unavailable",
+    )):
+        return "temporarily-unavailable"
+    return "extractor-error"
+
+
+def _error_response(error: Exception, error_type: str = None):
+    message = str(error)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": message, "errorType": error_type or _classify_error(message)},
+    )
+
+
+def _media_metadata(extension: str) -> dict:
+    extension = extension.lower()
+    if not extension.startswith("."):
+        extension = f".{extension}"
+    content_type = {
+        ".mp3": "audio/mpeg",
+        ".m4a": "audio/mp4",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+        ".gif": "image/gif",
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mov": "video/quicktime",
+    }.get(extension, mimetypes.guess_type(f"file{extension}")[0] or "application/octet-stream")
+    media_kind = content_type.split("/", 1)[0]
+    if media_kind not in {"audio", "image", "video"}:
+        media_kind = "video"
+    return {"extension": extension, "mediaKind": media_kind, "contentType": content_type}
+
+
+def _extension_from_url(url: str, fallback: str) -> str:
+    suffix = Path(urlparse(url).path).suffix.lower()
+    return suffix if suffix and len(suffix) <= 6 else fallback
+
+
+def _download_response(status: str, url: str, title: str, filename: str,
+                       public_base_url: str = None) -> dict:
+    base_url = PUBLIC_BASE_URL if public_base_url is None else public_base_url
+    if url.startswith("/") and base_url:
+        parsed_base = urlparse(base_url)
+        if parsed_base.scheme in {"http", "https"} and parsed_base.netloc:
+            base_url = parsed_base._replace(query="", fragment="").geturl().rstrip("/")
+            url = f"{base_url}{url}"
+    return {
+        "status": status,
+        "url": url,
+        "title": title,
+        "filename": filename,
+        **_media_metadata(Path(filename).suffix or ".mp4"),
+    }
+
+
+def _build_info_response(data: dict) -> dict:
+    by_height = {}
+    has_audio = False
+    for item in data.get("formats", []):
+        vcodec = item.get("vcodec", "none")
+        acodec = item.get("acodec", "none")
+        if acodec != "none" and vcodec == "none":
+            has_audio = True
+        if vcodec == "none" or not item.get("height"):
+            continue
+        height = item["height"]
+        size = item.get("filesize") or item.get("filesize_approx")
+        previous = by_height.get(height)
+        if previous is None or (size and (previous["filesize"] or 0) < size):
+            extension = f".{item.get('ext') or 'mp4'}"
+            by_height[height] = {
+                "height": height,
+                "ext": extension.removeprefix("."),
+                "filesize": size,
+                "quality": f"{height}p",
+                **_media_metadata(extension),
+            }
+    formats = sorted(by_height.values(), key=lambda item: item["height"], reverse=True)[:8]
+    audio = None
+    if has_audio or not formats:
+        audio = {
+            "quality": "Audio (MP3)", "ext": "mp3", "height": 0,
+            "filesize": None, "mode": "audio", **_media_metadata(".mp3"),
+        }
+    return {
+        "status": "ok",
+        "title": data.get("title", ""),
+        "thumbnail": data.get("thumbnail", ""),
+        "duration": data.get("duration"),
+        "uploader": data.get("uploader", ""),
+        "formats": formats,
+        "audio": audio,
+    }
+
+
+class _ThreadsHTMLParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.meta = {}
+        self.scripts = []
+        self._script = None
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "meta":
+            name = (attrs.get("property") or attrs.get("name") or "").lower()
+            if name.startswith("og:") and attrs.get("content"):
+                self.meta[name] = html.unescape(attrs["content"])
+        elif tag == "script" and (attrs.get("type") or "").lower() in {
+            "application/json", "application/ld+json",
+        }:
+            self._script = []
+
+    def handle_data(self, data):
+        if self._script is not None:
+            self._script.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "script" and self._script is not None:
+            self.scripts.append("".join(self._script))
+            self._script = None
+
+
+def _safe_media_url(value):
+    if not isinstance(value, str):
+        return None
+    value = html.unescape(value).replace("\\/", "/")
+    try:
+        parsed = urlparse(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username:
+            return None
+    except ValueError:
+        return None
+    return value
+
+
+def _hydration_media(value, key="", media_context=False):
+    media_keys = {
+        "contenturl", "content_url", "playable_url", "playable_url_quality_hd",
+        "video_url", "image_url", "display_url", "thumbnailurl", "thumbnail_url",
+    }
+    if isinstance(value, dict):
+        for child_key, child in value.items():
+            child_key = str(child_key).lower()
+            child_context = media_context or child_key in {"video_versions", "image_versions2"}
+            yield from _hydration_media(child, child_key, child_context)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _hydration_media(child, key, media_context)
+    elif key in media_keys or (key == "url" and media_context):
+        url = _safe_media_url(value)
+        if url:
+            yield url
+
+
+def _parse_threads_html(document: str) -> dict:
+    parser = _ThreadsHTMLParser()
+    parser.feed(document)
+    candidates = [
+        (parser.meta.get("og:video"), ".mp4"),
+        (parser.meta.get("og:image"), ".jpg"),
+    ]
+    for script in parser.scripts:
+        try:
+            candidates.extend((url, None) for url in _hydration_media(json.loads(script)))
+        except (json.JSONDecodeError, TypeError, ValueError):
+            continue
+    media = []
+    seen = set()
+    for candidate, fallback in candidates:
+        url = _safe_media_url(candidate)
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        extension = _extension_from_url(
+            url, fallback or (".mp4" if "video" in url else ".jpg"),
+        )
+        media.append({"url": url, **_media_metadata(extension)})
+        if len(media) == 8:
+            break
+    return {
+        "title": parser.meta.get("og:title", "Threads post"),
+        "description": parser.meta.get("og:description", ""),
+        "thumbnail": parser.meta.get("og:image", ""),
+        "media": media,
+    }
+
+
+def _validate_source_url(url: str):
+    """Reject local/non-HTTP targets before passing a URL to an extractor."""
+    try:
+        parsed = urlparse(url)
+        host = parsed.hostname
+        if parsed.scheme not in {"http", "https"} or not host or parsed.username or parsed.password:
+            raise ValueError
+        if host.lower().rstrip(".") == "localhost":
+            raise ValueError
+        try:
+            address = ipaddress.ip_address(host)
+        except ValueError:
+            address = None
+        if address and not address.is_global:
+            raise ValueError
+    except ValueError as error:
+        raise ValueError("Only public HTTP(S) URLs are supported") from error
+
+
+def _validate_threads_url(url: str):
+    _validate_source_url(url)
+    try:
+        parsed = urlparse(url)
+        path_parts = [part for part in parsed.path.split("/") if part]
+        is_post = len(path_parts) >= 3 and path_parts[0].startswith("@") \
+            and path_parts[1] in {"post", "t"}
+        if (parsed.scheme != "https" or parsed.hostname not in THREADS_HOSTS or
+                parsed.username or parsed.password or parsed.port not in {None, 443} or
+                not is_post):
+            raise ValueError("Only public HTTPS Threads URLs are supported")
+    except ValueError as error:
+        raise ValueError("Only public HTTPS Threads URLs are supported") from error
+
+
+def _is_threads_url(url: str) -> bool:
+    try:
+        return urlparse(url).hostname in THREADS_HOSTS
+    except ValueError:
+        return False
+
+
+class _ThreadsRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _validate_threads_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _extract_threads(url: str) -> dict:
+    _validate_threads_url(url)
+    request = Request(url, headers={"User-Agent": "Mozilla/5.0 EL-Saver/1.0"})
+    try:
+        response = build_opener(_ThreadsRedirect).open(request, timeout=THREADS_TIMEOUT)
+        content_length = int(response.headers.get("Content-Length", "0"))
+        if content_length > THREADS_MAX_BYTES:
+            raise ValueError("Threads response too large")
+        body = response.read(THREADS_MAX_BYTES + 1)
+        if len(body) > THREADS_MAX_BYTES:
+            raise ValueError("Threads response too large")
+        result = _parse_threads_html(body.decode("utf-8", errors="replace"))
+        if not result["media"]:
+            raise ValueError("No public Threads media found")
+        return result
+    except (HTTPError, URLError, OSError, ValueError) as error:
+        raise Exception(f"Threads temporarily unavailable: {error}") from error
+
+
+def _threads_info(data: dict) -> dict:
+    formats = []
+    for index, item in enumerate(data["media"], 1):
+        extension = item["extension"]
+        formats.append({
+            "quality": f"{item['mediaKind'].title()} {index}",
+            "height": index,
+            "ext": extension.removeprefix("."),
+            "filesize": None,
+            **item,
+        })
+    return {
+        "status": "ok", "title": data["title"], "thumbnail": data["thumbnail"],
+        "duration": None, "uploader": "", "formats": formats[:8], "audio": None,
+        "description": data["description"], "experimentalExtractor": "threads-public",
+    }
+
+
 @app.post("/info")
 def get_info(req: VideoRequest, x_api_key: str = Header()):
     _check_key(x_api_key)
 
     try:
+        _validate_source_url(req.url)
+        if _is_threads_url(req.url):
+            try:
+                return _threads_info(_extract_threads(req.url))
+            except Exception as error:
+                return _error_response(error, "temporarily-unavailable")
         result = _run_ytdlp([
             "-j", "--no-playlist",
             *_cookie_args(req.url),
             req.url,
         ], timeout=60)
-
-        data = json.loads(result["stdout"])
-
-        # Collect the best available filesize per video height (whether the
-        # stream is muxed or video-only — we can always merge with audio).
-        by_height: dict = {}
-        has_audio = False
-        for f in data.get("formats", []):
-            vcodec = f.get("vcodec", "none")
-            acodec = f.get("acodec", "none")
-            if acodec != "none" and vcodec == "none":
-                has_audio = True  # an audio-only stream exists
-            if vcodec == "none":
-                continue
-            h = f.get("height")
-            if not h:
-                continue
-            size = f.get("filesize") or f.get("filesize_approx")
-            prev = by_height.get(h)
-            if prev is None or (size and (prev["filesize"] or 0) < size):
-                by_height[h] = {
-                    "height": h,
-                    "ext": "mp4",
-                    "filesize": size,
-                    "quality": f"{h}p",
-                }
-
-        formats = sorted(by_height.values(),
-                         key=lambda x: x["height"], reverse=True)[:8]
-
-        # Always offer audio-only (MP3) when the source has any audio stream.
-        audio_entry = None
-        if has_audio or not formats:
-            audio_entry = {"quality": "Audio (MP3)", "ext": "mp3",
-                           "height": 0, "filesize": None, "mode": "audio"}
-
-        return {
-            "status": "ok",
-            "title": data.get("title", ""),
-            "thumbnail": data.get("thumbnail", ""),
-            "duration": data.get("duration"),
-            "uploader": data.get("uploader", ""),
-            "formats": formats,
-            "audio": audio_entry,
-        }
+        return _build_info_response(json.loads(result["stdout"]))
     except Exception as e:
-        raise HTTPException(500, str(e))
+        return _error_response(e)
 
 
 @app.post("/download")
@@ -158,6 +454,20 @@ def get_download(req: VideoRequest, x_api_key: str = Header()):
     _check_key(x_api_key)
 
     try:
+        _validate_source_url(req.url)
+        if _is_threads_url(req.url):
+            try:
+                data = _extract_threads(req.url)
+            except Exception as error:
+                return _error_response(error, "temporarily-unavailable")
+            selected = req.quality.replace("p", "")
+            index = int(selected) - 1 if selected.isdigit() and selected != "720" else 0
+            if index < 0 or index >= len(data["media"]):
+                return _error_response(Exception("Threads media unavailable"), "unavailable")
+            item = data["media"][index]
+            filename = f"{data['title']}{item['extension']}"
+            return _download_response("redirect", item["url"], data["title"], filename)
+
         # Audio-only: extract to MP3 server-side and serve the file.
         if req.mode == "audio":
             return _download_audio(req.url)
@@ -167,7 +477,7 @@ def get_download(req: VideoRequest, x_api_key: str = Header()):
         # YouTube's googlevideo URLs are locked to the extractor's IP, so a
         # redirect would be unfetchable from the user's device. Download on the
         # server and serve the file instead.
-        is_youtube = "youtube.com" in req.url or "youtu.be" in req.url
+        is_youtube = _cookie_platform(req.url) == "youtube"
         if is_youtube:
             return _download_merged(req.url, height)
 
@@ -181,32 +491,26 @@ def get_download(req: VideoRequest, x_api_key: str = Header()):
         result = _run_ytdlp([
             "-f", muxed_spec,
             "--no-playlist",
-            "--print", "%(urls)s",
-            "--print", "%(title)s",
+            "--print", "%(urls)s|@@|%(title)s|@@|%(ext)s",
             *_cookie_args(req.url),
             req.url,
         ], timeout=60)
 
-        lines = [l for l in result["stdout"].strip().split("\n") if l]
-        # First non-empty line = url(s), last = title
-        url_line = lines[0] if lines else ""
-        title = lines[-1] if len(lines) >= 2 else "video"
-        urls = url_line.split("\n")
-
-        if len(urls) == 1 and urls[0].startswith("http"):
+        url, separator, metadata = result["stdout"].strip().partition("|@@|")
+        title, separator2, extension = metadata.rpartition("|@@|")
+        if separator and separator2 and url.startswith("http") and "\n" not in url:
             # Single progressive URL - direct download possible
-            return {
-                "status": "redirect",
-                "url": urls[0],
-                "title": title,
-                "filename": f"{title}.mp4",
-            }
+            extension = extension.strip() or "mp4"
+            title = title.strip() or "video"
+            return _download_response(
+                "redirect", url, title, f"{title}.{extension}",
+            )
         else:
             # No muxed stream - fall back to server-side merge
             return _download_merged(req.url, height)
 
     except Exception as e:
-        raise HTTPException(500, str(e))
+        return _error_response(e)
 
 
 def _download_merged(url: str, height: str) -> dict:
@@ -244,12 +548,9 @@ def _download_merged(url: str, height: str) -> dict:
                 raise Exception("Download failed: empty or missing output")
             final_path = matches[0]
 
-        return {
-            "status": "tunnel",
-            "url": f"/files/{final_path.name}",
-            "title": title,
-            "filename": f"{title}.mp4",
-        }
+        return _download_response(
+            "tunnel", f"/files/{final_path.name}", title, f"{title}.mp4",
+        )
     except Exception:
         for m in DOWNLOAD_DIR.glob(f"{token}.*"):
             m.unlink(missing_ok=True)
@@ -283,12 +584,9 @@ def _download_audio(url: str) -> dict:
                 raise Exception("Audio extraction failed: empty output")
             final_path = matches[0]
 
-        return {
-            "status": "tunnel",
-            "url": f"/files/{final_path.name}",
-            "title": title,
-            "filename": f"{title}.mp3",
-        }
+        return _download_response(
+            "tunnel", f"/files/{final_path.name}", title, f"{title}.mp3",
+        )
     except Exception:
         for m in DOWNLOAD_DIR.glob(f"{token}.*"):
             m.unlink(missing_ok=True)

@@ -9,15 +9,18 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 
+import '../../../../../core/error/failure.dart';
 import '../../../../../core/helpers/dir_helper.dart';
+import '../../../../../core/helpers/media_file_utils.dart';
 import '../../../../../core/utils/app_enums.dart';
 import '../../../../../core/utils/app_strings.dart';
-import '../../../../../core/helpers/permission_helper.dart';
+import '../../../../../core/utils/app_constants.dart';
 import '../../../domain/entities/download_item.dart';
 import '../../../domain/entities/video_item.dart';
 import '../../../domain/entities/video_link.dart';
 import '../../../domain/usecase/get_video_usecase.dart';
 import '../../../domain/usecase/get_audio_url_usecase.dart';
+import '../../../domain/usecase/resolve_media_usecase.dart';
 import '../../../domain/usecase/save_video_usecase.dart';
 
 part 'downloader_event.dart';
@@ -27,12 +30,14 @@ part 'downloader_state.dart';
 class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
   final GetVideoUseCase getVideoUseCase;
   final GetAudioUrlUseCase getAudioUrlUseCase;
+  final ResolveMediaUseCase resolveMediaUseCase;
   final SaveVideoUseCase saveVideoUseCase;
   static const String _downloadHistoryKey = 'download_history';
 
   DownloaderBloc({
     required this.getVideoUseCase,
     required this.getAudioUrlUseCase,
+    required this.resolveMediaUseCase,
     required this.saveVideoUseCase,
   }) : super(DownloaderInitial()) {
     on<LoadOldDownloads>(_loadOldDownloads);
@@ -60,7 +65,17 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     emit(const DownloaderGetVideoLoading());
     final result = await getVideoUseCase(event.videoLink);
     result.fold(
-      (left) => emit(DownloaderGetVideoFailure(left.message)),
+      (failure) {
+        if (failure is AuthRequiredFailure) {
+          emit(DownloaderAuthRequired(
+            platform: failure.platform,
+            sourceUrl: event.videoLink,
+            message: failure.message,
+          ));
+        } else {
+          emit(DownloaderGetVideoFailure(failure.message));
+        }
+      },
       (right) => emit(DownloaderGetVideoSuccess(right)),
     );
   }
@@ -96,7 +111,10 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
           ],
           stats: event.video.stats,
         );
-        add(DownloaderSaveVideo(video: withAudio, selectedLink: audioQuality));
+        add(DownloaderSaveVideo(
+          video: withAudio,
+          selectedLink: withAudio.videoLinks.single,
+        ));
       },
     );
   }
@@ -105,19 +123,29 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     DownloaderSaveVideo event,
     Emitter<DownloaderState> emit,
   ) async {
-    bool checkPermissions = await PermissionsHelper.checkPermission();
-    if (!checkPermissions) {
-      emit(DownloaderSaveVideoFailure(AppStrings.permissionsRequired));
+    final selectedVideoLink = event.selectedLink;
+    final resolution = await resolveMediaUseCase(ResolveMediaParams(
+      sourceUrl: event.video.srcUrl,
+      option: selectedVideoLink,
+    ));
+    String? resolutionError;
+    dynamic resolved;
+    resolution.fold(
+      (failure) => resolutionError = failure.message,
+      (media) => resolved = media,
+    );
+    if (resolved == null) {
+      emit(DownloaderSaveVideoFailure(
+          resolutionError ?? 'Gagal menyiapkan media'));
       return;
     }
-
-    final selectedVideoLink = event.video.videoLinks
-        .firstWhere((videoLink) => videoLink.quality == event.selectedLink);
-    final selectedLink = selectedVideoLink.link;
-    final path = await _getPathById(event.video.rId,
-        quality: event.selectedLink,
-        originalLink: selectedLink,
-        isAudio: selectedVideoLink.isAudio);
+    final selectedLink = resolved.url as String;
+    final path = await _getPathById(
+      event.video.rId,
+      optionId: selectedVideoLink.id,
+      quality: selectedVideoLink.quality,
+      extension: resolved.extension as String,
+    );
 
     final platform = DownloadItem.detectPlatform(event.video.srcUrl);
     final videoTitle = _extractVideoTitle(event.video.title);
@@ -125,6 +153,7 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     DownloadItem item = DownloadItem(
       video: event.video,
       selectedLink: selectedLink,
+      selectedLinkId: selectedVideoLink.id,
       status: DownloadStatus.downloading,
       path: path,
       progress: 0.0,
@@ -197,7 +226,7 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
       },
       (right) async {
         String? thumbPath;
-        if (!_isImageUrl(path)) {
+        if (_isVideoPath(path)) {
           thumbPath = await _generateThumbnail(path);
         }
 
@@ -229,40 +258,43 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     }
   }
 
-  Future<String> _getPathById(String id,
-      {String? quality, String? originalLink, bool isAudio = false}) async {
+  Future<String> _getPathById(
+    String id, {
+    required String quality,
+    required String extension,
+    String optionId = '',
+  }) async {
     final appPath = await DirHelper.getAppPath();
-
-    String extension = ".mp4";
-
-    if (isAudio) {
-      extension = ".mp3";
-    } else if (originalLink != null && _isImageUrl(originalLink)) {
-      if (originalLink.toLowerCase().contains('.jpg') ||
-          originalLink.toLowerCase().contains('.jpeg')) {
-        extension = ".jpg";
-      } else if (originalLink.toLowerCase().contains('.png')) {
-        extension = ".png";
-      } else if (originalLink.toLowerCase().contains('.webp')) {
-        extension = ".webp";
-      } else {
-        extension = ".jpg";
-      }
-    }
-
-    String filename = id;
-    if (quality != null && quality.startsWith("Image")) {
-      filename = "${id}_${quality.replaceAll(' ', '_')}";
-    }
-
-    return "$appPath/$filename$extension";
+    final suffix = (optionId.isNotEmpty ? optionId : quality)
+        .replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_');
+    final ext = extension.startsWith('.') ? extension : '.$extension';
+    return '$appPath/${MediaFileUtils.filename(id, suffix, ext)}';
   }
 
-  bool _isImageUrl(String url) {
-    return url.toLowerCase().contains('.jpg') ||
-        url.toLowerCase().contains('.jpeg') ||
-        url.toLowerCase().contains('.png') ||
-        url.toLowerCase().contains('.webp');
+  bool _isVideoPath(String path) {
+    final lower = path.toLowerCase();
+    return lower.endsWith('.mp4') ||
+        lower.endsWith('.webm') ||
+        lower.endsWith('.mkv');
+  }
+
+  bool _isImagePath(String path) {
+    final lower = path.toLowerCase();
+    return lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.png') ||
+        lower.endsWith('.webp') ||
+        lower.endsWith('.gif');
+  }
+
+  bool _isSupportedMediaPath(String path) {
+    final lower = path.toLowerCase();
+    return _isVideoPath(lower) ||
+        _isImagePath(lower) ||
+        lower.endsWith('.mp3') ||
+        lower.endsWith('.m4a') ||
+        lower.endsWith('.ogg');
   }
 
   void _updateItem(int index, DownloadItem item) {
@@ -305,17 +337,22 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     final files = await directory.list().toList();
     final newDownloadedVideosPaths = newDownloads.map((e) => e.path);
     for (final file in files) {
-      if (file is File && file.path.endsWith('.mp4')) {
-        final videoPath = file.path;
-        if (newDownloadedVideosPaths.contains(videoPath)) continue;
-        final thumbnailPath = await VideoThumbnail.thumbnailFile(
-          video: videoPath,
-          thumbnailPath: (await getTemporaryDirectory()).path,
-          imageFormat: ImageFormat.PNG,
-          quality: 30,
-        );
+      if (file is File && _isSupportedMediaPath(file.path)) {
+        final mediaPath = file.path;
+        if (newDownloadedVideosPaths.contains(mediaPath)) continue;
+        String? thumbnailPath;
+        if (_isVideoPath(mediaPath)) {
+          thumbnailPath = await VideoThumbnail.thumbnailFile(
+            video: mediaPath,
+            thumbnailPath: (await getTemporaryDirectory()).path,
+            imageFormat: ImageFormat.PNG,
+            quality: 30,
+          );
+        } else if (_isImagePath(mediaPath)) {
+          thumbnailPath = mediaPath;
+        }
         oldDownloads
-            .add(VideoItem(path: videoPath)..thumbnailPath = thumbnailPath);
+            .add(VideoItem(path: mediaPath)..thumbnailPath = thumbnailPath);
       }
     }
     emit(OldDownloadsLoadingSuccess(downloads: oldDownloads));
@@ -396,8 +433,14 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
     final index = newDownloads.indexWhere((item) => item.path == event.path);
     if (index != -1 && newDownloads[index].status == DownloadStatus.paused) {
       final item = newDownloads[index];
-      add(DownloaderSaveVideo(
-          video: item.video, selectedLink: item.selectedLink));
+      final option = item.video.videoLinks.firstWhere(
+        (link) => link.id == item.selectedLinkId,
+        orElse: () => item.video.videoLinks.firstWhere(
+          (link) => link.link == item.selectedLink,
+          orElse: () => item.video.videoLinks.first,
+        ),
+      );
+      add(DownloaderSaveVideo(video: item.video, selectedLink: option));
     }
   }
 
@@ -446,8 +489,14 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
           item.copyWith(status: DownloadStatus.downloading, progress: 0.0));
       await _saveDownloadHistory();
 
-      add(DownloaderSaveVideo(
-          video: item.video, selectedLink: item.selectedLink));
+      final option = item.video.videoLinks.firstWhere(
+        (link) => link.id == item.selectedLinkId,
+        orElse: () => item.video.videoLinks.firstWhere(
+          (link) => link.link == item.selectedLink,
+          orElse: () => item.video.videoLinks.first,
+        ),
+      );
+      add(DownloaderSaveVideo(video: item.video, selectedLink: option));
     }
   }
 }

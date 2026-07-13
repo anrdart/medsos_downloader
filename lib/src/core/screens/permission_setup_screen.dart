@@ -94,14 +94,6 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                                 ),
                                 const SizedBox(height: 16),
                                 _buildPermissionItem(
-                                  icon: Icons.folder_open,
-                                  title: 'Akses Semua File',
-                                  description:
-                                      'Aplikasi akan dapat membaca, memodifikasi, dan menghapus semua file di ponsel ini atau perangkat penyimpanan yang tersambung',
-                                  isCompleted: false,
-                                ),
-                                const SizedBox(height: 16),
-                                _buildPermissionItem(
                                   icon: Icons.install_mobile,
                                   title: 'Install Apps',
                                   description:

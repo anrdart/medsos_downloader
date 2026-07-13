@@ -10,6 +10,7 @@ import '../../data/models/platform_login_config.dart';
 import '../../data/services/cookie_extraction_service.dart';
 import '../bloc/account_bloc.dart';
 import '../bloc/account_event.dart';
+import '../bloc/account_state.dart';
 
 class WebViewLoginScreen extends StatefulWidget {
   final SocialPlatform platform;
@@ -94,7 +95,6 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
           context.read<AccountBloc>().add(
                 CookiesExtracted(platform: widget.platform, cookies: cookies),
               );
-          Navigator.of(context).pop(true);
         }
       }
     } catch (_) {
@@ -108,54 +108,74 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = theme.cardColor;
     final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
-    final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
+    final mutedColor =
+        isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: cardColor,
-        leading: IconButton(
-          icon: Icon(Icons.close, color: fgColor),
-          onPressed: () => Navigator.of(context).pop(false),
-        ),
-        title: Text(
-          "Login ${_config.name}",
-          style: TextStyle(color: fgColor, fontSize: 16),
-        ),
-        actions: [
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.only(right: 16),
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+    return BlocListener<AccountBloc, AccountState>(
+        listener: (context, state) {
+          if (state is LoginSuccess && state.platform == widget.platform) {
+            Navigator.of(context).pop(true);
+          } else if (state is LoginFailure &&
+              state.platform == widget.platform) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text(state.message), backgroundColor: AppColors.red),
+            );
+            setState(() => _extracted = false);
+          }
+        },
+        child: Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          appBar: AppBar(
+            backgroundColor: cardColor,
+            leading: IconButton(
+              icon: Icon(Icons.close, color: fgColor),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            title: Text(
+              "Login ${_config.name}",
+              style: TextStyle(color: fgColor, fontSize: 16),
+            ),
+            actions: [
+              if (_config.manualCompletion)
+                TextButton(
+                  onPressed: () => _tryExtractCookies('manual'),
+                  child: const Text('Selesai Login'),
+                ),
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.only(right: 16),
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          body: Column(
+            children: [
+              Expanded(child: WebViewWidget(controller: _controller)),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                color: cardColor,
+                child: Text(
+                  _statusText,
+                  style: TextStyle(
+                    color: mutedColor,
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
-            ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(child: WebViewWidget(controller: _controller)),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-            color: cardColor,
-            child: Text(
-              _statusText,
-              style: TextStyle(
-                color: mutedColor,
-                fontSize: 12,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            ],
           ),
-        ],
-      ),
-    );
+        ));
   }
 }

@@ -13,7 +13,8 @@ class AppColors {
   static const Color accentVioletLight = Color(0xFF9B6CFB);
 
   // --- Backgrounds (scaffold) ---
-  static const Color scaffoldBackgroundColorDark = Color(0xFF121212); // matte black
+  static const Color scaffoldBackgroundColorDark =
+      Color(0xFF121212); // matte black
   static const Color scaffoldBackgroundColorLight = Color(0xFFFAF8F2); // ivory
 
   // --- Surfaces (cards / dialogs) ---

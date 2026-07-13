@@ -1,6 +1,7 @@
 import 'package:el_saver/src/features/social_videos_downloader/data/models/video_link_model.dart';
 import 'package:el_saver/src/features/social_videos_downloader/data/models/video_stats_model.dart';
 import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video.dart';
+import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video_link.dart';
 
 class VideoModel extends Video {
   const VideoModel({
@@ -92,8 +93,8 @@ class VideoModel extends Video {
   }
 
   /// Parse Cobalt API response
-  factory VideoModel.fromCobalt(
-      Map<String, dynamic> json, String originalUrl, {String? audioUrl}) {
+  factory VideoModel.fromCobalt(Map<String, dynamic> json, String originalUrl,
+      {String? audioUrl}) {
     final status = json["status"] as String?;
     final rId = DateTime.now().millisecondsSinceEpoch.toString();
     List<VideoLinkModel> videoLinks = [];
@@ -103,9 +104,15 @@ class VideoModel extends Video {
     if (status == "redirect" || status == "tunnel") {
       final url = json["url"] as String? ?? "";
       final filename = json["filename"] as String? ?? "Video";
+      final extension = _extensionFromFilename(filename);
+      final kind = extension == '.mp3' ? MediaKind.audio : MediaKind.video;
       videoLinks.add(VideoLinkModel(
-        quality: _fmt("Best Quality"),
+        id: 'cobalt-0',
+        quality: _fmt(kind == MediaKind.audio ? "Audio (MP3)" : "Best Quality"),
         link: url,
+        mediaKind: kind,
+        mode: kind == MediaKind.audio ? 'audio' : 'video',
+        extension: extension,
       ));
       title = filename;
     } else if (status == "picker") {
@@ -119,18 +126,27 @@ class VideoModel extends Video {
         if (type == "photo") {
           images.add(url);
           videoLinks.add(VideoLinkModel(
+            id: 'picker-$i',
             quality: _fmt("Image ${i + 1}"),
             link: url,
+            mediaKind: MediaKind.image,
+            extension: '.jpg',
           ));
         } else if (type == "gif") {
           videoLinks.add(VideoLinkModel(
+            id: 'picker-$i',
             quality: _fmt("GIF ${i + 1}"),
             link: url,
+            mediaKind: MediaKind.gif,
+            extension: '.gif',
           ));
         } else {
           videoLinks.add(VideoLinkModel(
+            id: 'picker-$i',
             quality: _fmt("Video ${i + 1}"),
             link: url,
+            mediaKind: MediaKind.video,
+            extension: '.mp4',
           ));
         }
       }
@@ -171,8 +187,7 @@ class VideoModel extends Video {
   }
 
   /// Parse TikWM API response (TikTok/Douyin fallback)
-  factory VideoModel.fromTikwm(
-      Map<String, dynamic> json, String originalUrl) {
+  factory VideoModel.fromTikwm(Map<String, dynamic> json, String originalUrl) {
     final data = json["data"] as Map<String, dynamic>? ?? {};
     final rId = DateTime.now().millisecondsSinceEpoch.toString();
     List<VideoLinkModel> videoLinks = [];
@@ -227,7 +242,8 @@ class VideoModel extends Video {
     }
 
     final title = data["title"] as String? ?? "TikTok Video";
-    final cover = data["cover"] as String? ?? data["origin_cover"] as String? ?? "";
+    final cover =
+        data["cover"] as String? ?? data["origin_cover"] as String? ?? "";
     final duration = data["duration"]?.toString() ?? "0";
     final playCount = data["play_count"]?.toString() ?? "0";
 
@@ -249,6 +265,57 @@ class VideoModel extends Video {
     );
   }
 
+  /// Parse yt-dlp /info response into deferred quality choices.
+  factory VideoModel.fromYtdlpInfo(
+      Map<String, dynamic> json, String originalUrl) {
+    final links = <VideoLinkModel>[];
+    final formats = json['formats'] as List? ?? const [];
+    for (final raw in formats) {
+      if (raw is! Map) continue;
+      final item = Map<String, dynamic>.from(raw);
+      final height = item['height'] as int?;
+      final quality = item['quality']?.toString() ??
+          (height == null ? 'Video' : '${height}p');
+      final ext = _normalizeExtension(item['ext']?.toString() ?? 'mp4');
+      links.add(VideoLinkModel(
+        id: 'quality-${height ?? quality}',
+        quality: _fmt(quality),
+        link: '',
+        size: item['filesize'] as int?,
+        mediaKind: MediaKind.video,
+        extension: ext,
+        height: height,
+        isDeferred: true,
+      ));
+    }
+    final audio = json['audio'];
+    if (audio is Map) {
+      final item = Map<String, dynamic>.from(audio);
+      links.add(VideoLinkModel(
+        id: 'audio-mp3',
+        quality: _fmt(item['quality']?.toString() ?? 'Audio (MP3)'),
+        link: '',
+        size: item['filesize'] as int?,
+        mediaKind: MediaKind.audio,
+        mode: 'audio',
+        extension: '.mp3',
+        isDeferred: true,
+      ));
+    }
+    return VideoModel(
+      success: links.isNotEmpty,
+      message: links.isNotEmpty ? 'Success' : 'No media found',
+      srcUrl: originalUrl,
+      ogUrl: originalUrl,
+      title: _cleanTitle(json['title']?.toString() ?? 'Downloaded Media'),
+      picture: json['thumbnail']?.toString() ?? '',
+      images: const [],
+      timeTaken: DateTime.now().toString(),
+      rId: DateTime.now().millisecondsSinceEpoch.toString(),
+      videoLinks: links,
+    );
+  }
+
   /// Parse yt-dlp API response (YouTube fallback)
   factory VideoModel.fromYtdlp(
       Map<String, dynamic> json, String originalUrl, String apiBaseUrl) {
@@ -256,7 +323,9 @@ class VideoModel extends Video {
     List<VideoLinkModel> videoLinks = [];
 
     final status = json["status"] as String?;
-    final title = json["title"] as String? ?? json["filename"] as String? ?? "YouTube Video";
+    final title = json["title"] as String? ??
+        json["filename"] as String? ??
+        "YouTube Video";
     var url = json["url"] as String? ?? "";
 
     // If URL is relative path (tunnel/merged file), prepend base URL
@@ -288,10 +357,23 @@ class VideoModel extends Video {
     );
   }
 
+  static String _extensionFromFilename(String filename) {
+    final match = RegExp(r'\.([A-Za-z0-9]+)$').firstMatch(filename);
+    return _normalizeExtension(match?.group(1) ?? 'mp4');
+  }
+
+  static String _normalizeExtension(String value) {
+    if (value.isEmpty) return '.mp4';
+    return value.startsWith('.')
+        ? value.toLowerCase()
+        : '.${value.toLowerCase()}';
+  }
+
   static String _cleanTitle(String title) {
     if (title.isEmpty) return "Downloaded Media";
     // Strip file extension
-    String clean = title.replaceAll(RegExp(r'\.(mp4|webm|mkv|mp3|ogg|wav|m4a)$', caseSensitive: false), '');
+    String clean = title.replaceAll(
+        RegExp(r'\.(mp4|webm|mkv|mp3|ogg|wav|m4a)$', caseSensitive: false), '');
     // Strip quality/codec suffix like "(720p, h264)" or "(1080p)"
     clean = clean.replaceAll(RegExp(r'\s*\(\d+p,?\s*\w*\)\s*$'), '');
     // Replace Cobalt's platform_hashID names with readable names

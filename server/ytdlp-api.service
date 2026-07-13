@@ -10,7 +10,7 @@ EnvironmentFile=/opt/anrsaver/.env
 # deno (in /usr/local/bin) must be on PATH so yt-dlp's EJS solver can run
 # the YouTube n-challenge; without it YouTube returns images-only.
 Environment=PATH=/opt/anrsaver/venv/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/opt/anrsaver/venv/bin/uvicorn ytdlp_api:app --host 0.0.0.0 --port 9002
+ExecStart=/opt/anrsaver/venv/bin/uvicorn ytdlp_api:app --host 127.0.0.1 --port 9002
 Restart=on-failure
 RestartSec=3
 

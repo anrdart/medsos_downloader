@@ -1,12 +1,57 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path/path.dart' as path;
 
+enum MediaFileType { video, image, audio, unsupported }
+
 class DirHelper {
+  static const _mediaStoreChannel = MethodChannel('media_store');
+
+  static const _videoExtensions = {
+    '.mp4',
+    '.m4v',
+    '.mov',
+    '.webm',
+    '.mkv',
+    '.avi',
+    '.3gp',
+    '.mpeg',
+    '.mpg',
+  };
+  static const _imageExtensions = {
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+    '.gif',
+    '.bmp',
+    '.heic',
+    '.heif',
+  };
+  static const _audioExtensions = {
+    '.mp3',
+    '.m4a',
+    '.aac',
+    '.wav',
+    '.ogg',
+    '.opus',
+    '.flac',
+    '.amr',
+  };
+
+  static MediaFileType mediaTypeOf(String filePath) {
+    final extension = path.extension(filePath).toLowerCase();
+    if (_videoExtensions.contains(extension)) return MediaFileType.video;
+    if (_imageExtensions.contains(extension)) return MediaFileType.image;
+    if (_audioExtensions.contains(extension)) return MediaFileType.audio;
+    return MediaFileType.unsupported;
+  }
+
   static Future<String> getAppPath() async {
     String mainPath = await _getMainPath();
     String appPath = "$mainPath/SocialSaverVideos";
@@ -56,34 +101,41 @@ class DirHelper {
       throw Exception("File is empty");
     }
 
-    // Request gallery access
-    final hasAccess = await Gal.hasAccess(toAlbum: true);
-    if (!hasAccess) {
-      final granted = await Gal.requestAccess(toAlbum: true);
-      if (!granted) {
-        throw Exception("Gallery permission denied. Please allow access in Settings.");
-      }
+    switch (mediaTypeOf(filePath)) {
+      case MediaFileType.image:
+        await _ensureGalleryAccess();
+        await Gal.putImage(filePath, album: 'EL-Saver');
+      case MediaFileType.video:
+        await _ensureGalleryAccess();
+        await Gal.putVideo(filePath, album: 'EL-Saver');
+      case MediaFileType.audio:
+        if (!Platform.isAndroid) {
+          throw Exception(
+              'Saving audio to Music is only supported on Android.');
+        }
+        await _mediaStoreChannel.invokeMethod<void>(
+          'saveAudio',
+          {'filePath': filePath},
+        );
+      case MediaFileType.unsupported:
+        throw Exception(
+          'Unsupported file type. Only images, GIFs, videos, and audio can be saved.',
+        );
     }
+  }
 
-    final lower = filePath.toLowerCase();
-    if (_isImageFile(lower)) {
-      await Gal.putImage(filePath, album: 'EL-Saver');
-    } else {
-      await Gal.putVideo(filePath, album: 'EL-Saver');
+  static Future<void> _ensureGalleryAccess() async {
+    if (await Gal.hasAccess(toAlbum: true)) return;
+    if (!await Gal.requestAccess(toAlbum: true)) {
+      throw Exception(
+        "Gallery permission denied. Please allow access in Settings.",
+      );
     }
   }
 
   // Keep old name for backward compatibility
   static Future<void> saveVideoToGallery(String videoPath) async {
     await saveMediaToGallery(videoPath);
-  }
-
-  static bool _isImageFile(String lowerPath) {
-    return lowerPath.endsWith('.jpg') ||
-        lowerPath.endsWith('.jpeg') ||
-        lowerPath.endsWith('.png') ||
-        lowerPath.endsWith('.webp') ||
-        lowerPath.endsWith('.gif');
   }
 
   static Future<void> removeFileFromDownloadsDir(String videoPath) async {

@@ -28,8 +28,9 @@ class LegalScreen extends StatelessWidget {
           ),
           bottom: TabBar(
             labelColor: AppColors.primaryColor,
-            unselectedLabelColor:
-                isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight,
+            unselectedLabelColor: isDark
+                ? AppColors.mutedForegroundDark
+                : AppColors.mutedForegroundLight,
             indicatorColor: AppColors.primaryColor,
             tabs: const [
               Tab(text: "Privasi"),

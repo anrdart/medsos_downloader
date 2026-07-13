@@ -13,8 +13,10 @@ Future<dynamic> buildDownloadBottomSheet(
   BuildContext context,
   Video video,
 ) {
-  var selectedQuality =
-      video.videoLinks.isNotEmpty ? video.videoLinks.first.quality : "";
+  var selectedVideoLink = video.videoLinks.firstWhere(
+    (link) => !link.isAudio,
+    orElse: () => video.videoLinks.first,
+  );
   return showModalBottomSheet(
     backgroundColor: Theme.of(context).scaffoldBackgroundColor,
     context: context,
@@ -54,8 +56,8 @@ Future<dynamic> buildDownloadBottomSheet(
                     const SizedBox(height: 12),
                     BottomSheetCountItems(
                       videoData: video,
-                      onChanged: (newQuality) {
-                        selectedQuality = newQuality;
+                      onChanged: (link) {
+                        selectedVideoLink = link;
                       },
                     ),
                     const SizedBox(height: 16),
@@ -63,45 +65,10 @@ Future<dynamic> buildDownloadBottomSheet(
                       width: double.infinity,
                       label: AppStrings.download,
                       onPressed: () {
-                        String actualQuality = selectedQuality;
-
-                        // Extract actual quality from unique display name if it has parentheses
-                        if (selectedQuality.contains('(') &&
-                            selectedQuality.contains(')')) {
-                          actualQuality = selectedQuality
-                              .substring(
-                                  0, selectedQuality.lastIndexOf('(') - 1)
-                              .trim();
-                        }
-
-                        VideoLink? selectedVideoLink;
-
-                        // Find the video link that matches
-                        // First try to find by exact match with unique name
-                        for (int i = 0; i < video.videoLinks.length; i++) {
-                          String uniqueName =
-                              _getUniqueQualityName(video.videoLinks, i);
-                          if (uniqueName == selectedQuality) {
-                            selectedVideoLink = video.videoLinks[i];
-                            break;
-                          }
-                        }
-
-                        // Fallback: find by actual quality name
-                        if (selectedVideoLink == null) {
-                          for (var link in video.videoLinks) {
-                            if (link.quality == actualQuality) {
-                              selectedVideoLink = link;
-                              break;
-                            }
-                          }
-                        }
-
                         Navigator.pop(context);
                         context.read<DownloaderBloc>().add(DownloaderSaveVideo(
                               video: video,
-                              selectedLink: selectedVideoLink?.quality ??
-                                  video.videoLinks.first.quality,
+                              selectedLink: selectedVideoLink,
                             ));
                       },
                     ),
@@ -139,21 +106,4 @@ Future<dynamic> buildDownloadBottomSheet(
       );
     },
   );
-}
-
-String _getUniqueQualityName(List<VideoLink> videoLinks, int index) {
-  String quality = videoLinks[index].quality;
-
-  // Count total occurrences of this quality
-  int totalCount = videoLinks.where((l) => l.quality == quality).length;
-
-  // Get current occurrence index
-  int currentIndex =
-      videoLinks.take(index + 1).where((l) => l.quality == quality).length;
-
-  if (totalCount > 1) {
-    return "$quality ($currentIndex)";
-  } else {
-    return quality;
-  }
 }

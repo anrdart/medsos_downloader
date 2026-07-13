@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=/opt/anrsaver/server
 EnvironmentFile=/opt/anrsaver/.env
-ExecStart=/opt/anrsaver/venv/bin/uvicorn cookie_sync:app --host 0.0.0.0 --port 9005
+ExecStart=/opt/anrsaver/venv/bin/uvicorn cookie_sync:app --host 127.0.0.1 --port 9005
 Restart=on-failure
 RestartSec=3
 # Needs docker CLI to restart the Cobalt container on cookie changes

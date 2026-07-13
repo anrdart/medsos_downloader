@@ -15,7 +15,8 @@ class ThemeState {
       ));
 
   static ThemeData getAppTheme(bool isDark) {
-    final primary = isDark ? AppColors.primaryColorLight : AppColors.primaryColor;
+    final primary =
+        isDark ? AppColors.primaryColorLight : AppColors.primaryColor;
     return ThemeData(
       fontFamily: 'Poppins',
       brightness: isDark ? Brightness.dark : Brightness.light,
@@ -24,13 +25,15 @@ class ThemeState {
           : AppColors.scaffoldBackgroundColorLight,
       primaryColor: primary,
       cardColor: isDark ? AppColors.cardDark : AppColors.cardLight,
-      colorScheme: (isDark ? const ColorScheme.dark() : const ColorScheme.light())
-          .copyWith(
-            primary: primary,
-            secondary: isDark ? AppColors.accentVioletLight : AppColors.accentViolet,
-            surface: isDark ? AppColors.cardDark : AppColors.cardLight,
-            error: isDark ? AppColors.destructiveDark : AppColors.destructive,
-          ),
+      colorScheme:
+          (isDark ? const ColorScheme.dark() : const ColorScheme.light())
+              .copyWith(
+        primary: primary,
+        secondary:
+            isDark ? AppColors.accentVioletLight : AppColors.accentViolet,
+        surface: isDark ? AppColors.cardDark : AppColors.cardLight,
+        error: isDark ? AppColors.destructiveDark : AppColors.destructive,
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: isDark ? AppColors.cardDark : AppColors.primaryColor,
         foregroundColor: AppColors.white,
@@ -83,15 +86,17 @@ class ThemeState {
         fillColor: isDark ? AppColors.inputDark : AppColors.white,
         filled: true,
         errorBorder: OutlineInputBorder(
-          borderSide:
-              BorderSide(color: isDark ? AppColors.destructiveDark : AppColors.red, width: 1.5),
+          borderSide: BorderSide(
+              color: isDark ? AppColors.destructiveDark : AppColors.red,
+              width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(color: primary, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderSide:
-              BorderSide(color: isDark ? AppColors.destructiveDark : AppColors.red, width: 1.5),
+          borderSide: BorderSide(
+              color: isDark ? AppColors.destructiveDark : AppColors.red,
+              width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(
@@ -99,8 +104,7 @@ class ThemeState {
               width: 1.0),
         ),
       ),
-      progressIndicatorTheme:
-          ProgressIndicatorThemeData(color: primary),
+      progressIndicatorTheme: ProgressIndicatorThemeData(color: primary),
     );
   }
 }

@@ -7,6 +7,7 @@ class PlatformLoginConfig {
   final List<String> successDomains;
   final List<String> requiredCookieKeys;
   final List<String> cookieDomains;
+  final bool manualCompletion;
 
   const PlatformLoginConfig({
     required this.platform,
@@ -15,6 +16,7 @@ class PlatformLoginConfig {
     required this.successDomains,
     required this.requiredCookieKeys,
     required this.cookieDomains,
+    this.manualCompletion = false,
   });
 
   static const List<PlatformLoginConfig> supported = [
@@ -22,9 +24,22 @@ class PlatformLoginConfig {
     PlatformLoginConfig(
       platform: SocialPlatform.youtube,
       name: "YouTube & YouTube Music",
-      loginUrl: "https://accounts.google.com/ServiceLogin?hl=id&continue=https://m.youtube.com/",
-      successDomains: ["m.youtube.com", "youtube.com", "www.youtube.com", "music.youtube.com"],
-      requiredCookieKeys: ["SID", "HSID", "SSID", "APISID", "SAPISID", "__Secure-1PSID"],
+      loginUrl:
+          "https://accounts.google.com/ServiceLogin?hl=id&continue=https://m.youtube.com/",
+      successDomains: [
+        "m.youtube.com",
+        "youtube.com",
+        "www.youtube.com",
+        "music.youtube.com"
+      ],
+      requiredCookieKeys: [
+        "SID",
+        "HSID",
+        "SSID",
+        "APISID",
+        "SAPISID",
+        "__Secure-1PSID"
+      ],
       cookieDomains: [".youtube.com", ".google.com"],
     ),
     // Instagram + Threads share the same Meta login session.
@@ -32,7 +47,12 @@ class PlatformLoginConfig {
       platform: SocialPlatform.instagram,
       name: "Instagram & Threads",
       loginUrl: "https://www.instagram.com/accounts/login/",
-      successDomains: ["www.instagram.com", "instagram.com", "threads.net", "www.threads.net"],
+      successDomains: [
+        "www.instagram.com",
+        "instagram.com",
+        "threads.net",
+        "www.threads.net"
+      ],
       requiredCookieKeys: ["sessionid", "ds_user_id"],
       cookieDomains: [".instagram.com", ".threads.net"],
     ),
@@ -62,11 +82,16 @@ class PlatformLoginConfig {
     ),
     PlatformLoginConfig(
       platform: SocialPlatform.bilibili,
-      name: "Bilibili",
-      loginUrl: "https://www.bilibili.com/",
-      successDomains: ["www.bilibili.com", "bilibili.com"],
-      requiredCookieKeys: ["SESSDATA", "bili_jct"],
-      cookieDomains: [".bilibili.com"],
+      name: "Bilibili Global / Bstation",
+      loginUrl: "https://www.bilibili.tv/id",
+      successDomains: [
+        "www.bilibili.tv",
+        "bilibili.tv",
+        "passport.bilibili.tv",
+      ],
+      requiredCookieKeys: [],
+      cookieDomains: [".bilibili.tv", "passport.bilibili.tv"],
+      manualCompletion: true,
     ),
   ];
 

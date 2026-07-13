@@ -1,46 +1,89 @@
 import 'package:equatable/equatable.dart';
 
+enum MediaKind { video, audio, image, gif }
+
 class VideoLink extends Equatable {
+  final String id;
   final String quality;
   final String link;
-
-  /// File size in bytes if known (null = unknown).
   final int? size;
-
-  /// True when this link is audio-only (saved as .mp3).
-  final bool isAudio;
-
-  /// Server download mode hint: "video" (default) or "audio".
+  final MediaKind mediaKind;
   final String mode;
+  final String extension;
+  final int? height;
+  final bool isDeferred;
 
   const VideoLink({
+    this.id = '',
     required this.quality,
     required this.link,
     this.size,
-    this.isAudio = false,
+    MediaKind mediaKind = MediaKind.video,
+    bool isAudio = false,
     this.mode = 'video',
-  });
+    this.extension = '.mp4',
+    this.height,
+    this.isDeferred = false,
+  }) : mediaKind = isAudio ? MediaKind.audio : mediaKind;
+
+  bool get isAudio => mediaKind == MediaKind.audio;
+  bool get isImage =>
+      mediaKind == MediaKind.image || mediaKind == MediaKind.gif;
 
   @override
-  List<Object?> get props => [quality, link, size, isAudio, mode];
+  List<Object?> get props => [
+        id,
+        quality,
+        link,
+        size,
+        mediaKind,
+        mode,
+        extension,
+        height,
+        isDeferred,
+      ];
 
   factory VideoLink.fromJson(Map<String, dynamic> json) {
+    final isAudio = json['isAudio'] as bool? ?? false;
+    final kindName = json['mediaKind']?.toString();
+    final kind = MediaKind.values.firstWhere(
+      (value) => value.name == kindName,
+      orElse: () => isAudio ? MediaKind.audio : MediaKind.video,
+    );
     return VideoLink(
-      quality: json['quality'],
-      link: json['link'],
+      id: json['id']?.toString() ?? '',
+      quality: json['quality']?.toString() ?? '',
+      link: json['link']?.toString() ?? '',
       size: json['size'] as int?,
-      isAudio: json['isAudio'] as bool? ?? false,
-      mode: json['mode'] as String? ?? 'video',
+      mediaKind: kind,
+      mode: json['mode']?.toString() ??
+          (kind == MediaKind.audio ? 'audio' : 'video'),
+      extension: _normalizeExtension(
+        json['extension']?.toString() ??
+            (kind == MediaKind.audio ? '.mp3' : '.mp4'),
+      ),
+      height: json['height'] as int?,
+      isDeferred: json['isDeferred'] as bool? ?? false,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'quality': quality,
-      'link': link,
-      'size': size,
-      'isAudio': isAudio,
-      'mode': mode,
-    };
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'quality': quality,
+        'link': link,
+        'size': size,
+        'isAudio': isAudio,
+        'mediaKind': mediaKind.name,
+        'mode': mode,
+        'extension': extension,
+        'height': height,
+        'isDeferred': isDeferred,
+      };
+
+  static String _normalizeExtension(String value) {
+    if (value.isEmpty) return '.mp4';
+    return value.startsWith('.')
+        ? value.toLowerCase()
+        : '.${value.toLowerCase()}';
   }
 }

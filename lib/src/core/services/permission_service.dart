@@ -55,13 +55,8 @@ class PermissionService {
         return null;
       }
 
-      // Request storage permissions
-      bool storageGranted = await _requestStoragePermissions(context);
-      if (!storageGranted) return false;
-
-      // Request "Akses Semua File" permission (Manage External Storage)
-      bool allFilesGranted = await _requestAllFilesPermission(context);
-      if (!allFilesGranted) return false;
+      // Downloads stay in app-private storage. Gallery insertion requests any
+      // legacy permission only when the user explicitly saves to Gallery.
 
       // Request install unknown apps permission
       bool installGranted = await _requestInstallPermission(context);
@@ -128,11 +123,6 @@ class PermissionService {
                     description: 'Save downloaded media to your gallery',
                   ),
                   _PermissionItem(
-                    icon: Icons.folder_open,
-                    title: 'Akses Semua File',
-                    description: 'Akses penuh ke semua file dan folder',
-                  ),
-                  _PermissionItem(
                     icon: Icons.install_mobile,
                     title: 'Install Apps',
                     description:
@@ -186,48 +176,6 @@ class PermissionService {
           },
         ) ??
         false;
-  }
-
-  // Request storage permissions
-  Future<bool> _requestStoragePermissions(BuildContext context) async {
-    return await _showPermissionDialog(
-      context,
-      icon: Icons.folder,
-      title: 'Gallery Permission',
-      description:
-          'EL-Saver needs access to your device gallery to save downloaded videos.',
-      onRequest: () async {
-        // For Android 13+ (API 33+), request specific media permissions
-        var status = await Permission.videos.request();
-
-        if (status.isDenied || status.isPermanentlyDenied) {
-          // Fallback to general storage permission for older Android versions
-          status = await Permission.storage.request();
-        }
-
-        if (status.isDenied || status.isPermanentlyDenied) {
-          // Try external storage permission
-          status = await Permission.manageExternalStorage.request();
-        }
-
-        return status.isGranted;
-      },
-    );
-  }
-
-  // Request "Akses Semua File" permission (Manage External Storage)
-  Future<bool> _requestAllFilesPermission(BuildContext context) async {
-    return await _showPermissionDialog(
-      context,
-      icon: Icons.folder_open,
-      title: 'Akses Semua File',
-      description:
-          'EL-Saver memerlukan akses untuk membaca, memodifikasi, dan menghapus semua file di ponsel ini atau perangkat penyimpanan yang tersambung.',
-      onRequest: () async {
-        var status = await Permission.manageExternalStorage.request();
-        return status.isGranted;
-      },
-    );
   }
 
   // Request install permission

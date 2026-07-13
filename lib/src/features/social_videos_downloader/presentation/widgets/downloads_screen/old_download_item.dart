@@ -4,10 +4,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 
+import '../../../../../core/helpers/dir_helper.dart';
 import '../../../../../core/utils/app_assets.dart';
 import '../../../../../core/utils/app_colors.dart';
-import '../../../../../config/routes_manager.dart';
 import '../../../domain/entities/video_item.dart';
+import 'media_actions.dart';
 import 'save_to_gallery_dialog.dart';
 
 class OldDownloadItem extends StatelessWidget {
@@ -32,26 +33,7 @@ class OldDownloadItem extends StatelessWidget {
                 color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: videoItem.thumbnailPath != null &&
-                      File(videoItem.thumbnailPath!).existsSync()
-                  ? Image.file(
-                      File(videoItem.thumbnailPath!),
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Image.asset(
-                        AppAssets.noInternetImage,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  : Image.asset(
-                      AppAssets.noInternetImage,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                    ),
+              child: _buildThumbnail(),
             ),
           ),
           const SizedBox(width: 10),
@@ -115,14 +97,11 @@ class OldDownloadItem extends StatelessWidget {
                     Expanded(
                       child: _buildActionButton(
                         context,
-                        icon: Icons.play_circle_fill_rounded,
+                        icon: Icons.open_in_new_rounded,
                         color: AppColors.primaryColor,
-                        onPressed: () {
-                          Navigator.of(context).pushNamed(
-                            Routes.viewVideo,
-                            arguments: videoItem.path,
-                          );
-                        },
+                        tooltip: 'Open downloaded file',
+                        onPressed: () =>
+                            openDownloadedMedia(context, videoItem.path),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -144,6 +123,44 @@ class OldDownloadItem extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildThumbnail() {
+    final type = DirHelper.mediaTypeOf(videoItem.path);
+    if (type == MediaFileType.image && File(videoItem.path).existsSync()) {
+      return Image.file(
+        File(videoItem.path),
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    }
+    if (type == MediaFileType.video &&
+        videoItem.thumbnailPath != null &&
+        File(videoItem.thumbnailPath!).existsSync()) {
+      return Image.file(
+        File(videoItem.thumbnailPath!),
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    }
+    if (type == MediaFileType.audio) {
+      return const Icon(Icons.audio_file_rounded, size: 36);
+    }
+    if (type == MediaFileType.unsupported) {
+      return const Icon(Icons.insert_drive_file_rounded, size: 36);
+    }
+    return _placeholder();
+  }
+
+  Widget _placeholder() => Image.asset(
+        AppAssets.noInternetImage,
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+      );
 
   String _extractTitleFromFilename(String filePath) {
     try {
@@ -210,11 +227,14 @@ class OldDownloadItem extends StatelessWidget {
     SaveToGalleryDialog.show(context, videoPath);
   }
 
-  Widget _buildActionButton(BuildContext context,
-      {required IconData icon,
-      required Color color,
-      required VoidCallback onPressed}) {
-    return Material(
+  Widget _buildActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+    String? tooltip,
+  }) {
+    final button = Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onPressed,
@@ -229,13 +249,10 @@ class OldDownloadItem extends StatelessWidget {
               width: 1,
             ),
           ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 20,
-          ),
+          child: Icon(icon, color: color, size: 20),
         ),
       ),
     );
+    return tooltip == null ? button : Tooltip(message: tooltip, child: button);
   }
 }

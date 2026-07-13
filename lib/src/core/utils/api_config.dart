@@ -4,7 +4,7 @@ class ApiConfig {
   // Docker: https://github.com/imputnet/cobalt
   static const List<String> cobaltInstances = [
     // Self-hosted: has synced cookies, best for login-gated content
-    "http://157.20.159.50:9000",
+    "https://api.ekalliptus.com",
     // Public no-auth instances (verified live) - fallback
     "https://co.eepy.today",
     "https://co.otomir23.me",
@@ -20,13 +20,12 @@ class ApiConfig {
   // Cobalt API key (optional - only needed if instance requires auth)
   static const String? cobaltApiKey = null;
 
-  // Cookie sync server - deploy server/cookie_sync.py on VPS
-  // URL: http://your-vps-ip:9001  API_KEY: same as in cookie_sync.py
-  static const String cookieSyncUrl = "http://157.20.159.50:9005";
+  // Cookie sync server behind the api.ekalliptus.com TLS reverse proxy.
+  static const String cookieSyncUrl = "https://api.ekalliptus.com/cookie-sync";
   static const String cookieSyncApiKey = "wrIShnwgKDOvpNs7jCj30SweholNPjAo";
 
-  // yt-dlp API - YouTube fallback (deploy server/ytdlp_api.py on VPS)
-  static const String ytdlpApiUrl = "http://157.20.159.50:9002";
+  // yt-dlp API behind the api.ekalliptus.com TLS reverse proxy.
+  static const String ytdlpApiUrl = "https://api.ekalliptus.com/ytdlp";
   static const String ytdlpApiKey = "wrIShnwgKDOvpNs7jCj30SweholNPjAo";
 
   // TikWM fallback for TikTok (free, no auth)

@@ -1,0 +1,13 @@
+api.ekalliptus.com {
+    handle_path /ytdlp/* {
+        reverse_proxy 127.0.0.1:9002
+    }
+
+    handle_path /cookie-sync/* {
+        reverse_proxy 127.0.0.1:9005
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:9000
+    }
+}

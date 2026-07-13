@@ -15,12 +15,12 @@ class DownloaderGetVideo extends DownloaderEvent {
 
 class DownloaderSaveVideo extends DownloaderEvent {
   final Video video;
-  final String selectedLink;
+  final VideoLink selectedLink;
 
   const DownloaderSaveVideo({required this.video, required this.selectedLink});
 
   @override
-  List<Object?> get props => [video];
+  List<Object?> get props => [video, selectedLink];
 }
 
 /// Resolve an audio-only (MP3) URL on demand, then download it.

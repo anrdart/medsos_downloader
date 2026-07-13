@@ -68,8 +68,8 @@ class AppRounter {
       case Routes.webviewLogin:
         final platform = setting.arguments as SocialPlatform;
         return MaterialPageRoute(
-          builder: (context) => BlocProvider.value(
-            value: GetIt.I<AccountBloc>(),
+          builder: (context) => BlocProvider(
+            create: (_) => GetIt.I<AccountBloc>(),
             child: WebViewLoginScreen(platform: platform),
           ),
         );

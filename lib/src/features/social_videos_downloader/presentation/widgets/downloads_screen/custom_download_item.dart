@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 
+import '../../../../../core/helpers/dir_helper.dart';
 import '../../../../../core/utils/app_assets.dart';
 import '../../../domain/entities/download_item.dart';
 import 'download_item_status.dart';
@@ -64,23 +65,25 @@ class CustomDownloadsItem extends StatelessWidget {
       );
     }
 
-    // 3. If it's an image file, show itself as thumbnail
-    final path = item.path.toLowerCase();
-    if (path.endsWith('.jpg') ||
-        path.endsWith('.jpeg') ||
-        path.endsWith('.png') ||
-        path.endsWith('.webp')) {
-      if (File(item.path).existsSync()) {
-        return Image.file(
-          File(item.path),
-          width: 80,
-          height: 80,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(),
-        );
-      }
+    // 3. Image and GIF files can render their own thumbnail.
+    if (DirHelper.mediaTypeOf(item.path) == MediaFileType.image &&
+        File(item.path).existsSync()) {
+      return Image.file(
+        File(item.path),
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
     }
 
+    final type = DirHelper.mediaTypeOf(item.path);
+    if (type == MediaFileType.audio) {
+      return const Icon(Icons.audio_file_rounded, size: 36);
+    }
+    if (type == MediaFileType.unsupported) {
+      return const Icon(Icons.insert_drive_file_rounded, size: 36);
+    }
     return _placeholder();
   }
 

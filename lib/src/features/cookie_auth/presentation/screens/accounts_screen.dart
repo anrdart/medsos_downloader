@@ -25,7 +25,8 @@ class AccountsScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = theme.cardColor;
     final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
-    final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
+    final mutedColor =
+        isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Scaffold(
@@ -45,8 +46,7 @@ class AccountsScreen extends StatelessWidget {
               content: Text(state.synced
                   ? "Login berhasil & cookies tersinkronisasi ke server!"
                   : "Login berhasil! Cookies tersimpan lokal. (Server sync gagal)"),
-              backgroundColor:
-                  state.synced ? AppColors.green : Colors.orange,
+              backgroundColor: state.synced ? AppColors.green : Colors.orange,
             ));
           }
           if (state is LoginFailure) {
@@ -63,7 +63,8 @@ class AccountsScreen extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          final cookies = state is AccountsLoaded ? state.cookies : <PlatformCookie>[];
+          final cookies =
+              state is AccountsLoaded ? state.cookies : <PlatformCookie>[];
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -138,20 +139,26 @@ class _LegalLinks extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         TextButton(
-          onPressed: () => Navigator.of(context)
-              .pushNamed(Routes.legal, arguments: 0),
+          onPressed: () =>
+              Navigator.of(context).pushNamed(Routes.legal, arguments: 0),
           child: Text(
             "Kebijakan Privasi",
-            style: TextStyle(color: mutedColor, fontSize: 12, decoration: TextDecoration.underline),
+            style: TextStyle(
+                color: mutedColor,
+                fontSize: 12,
+                decoration: TextDecoration.underline),
           ),
         ),
         Text("•", style: TextStyle(color: mutedColor, fontSize: 12)),
         TextButton(
-          onPressed: () => Navigator.of(context)
-              .pushNamed(Routes.legal, arguments: 1),
+          onPressed: () =>
+              Navigator.of(context).pushNamed(Routes.legal, arguments: 1),
           child: Text(
             "Ketentuan Layanan",
-            style: TextStyle(color: mutedColor, fontSize: 12, decoration: TextDecoration.underline),
+            style: TextStyle(
+                color: mutedColor,
+                fontSize: 12,
+                decoration: TextDecoration.underline),
           ),
         ),
       ],
@@ -216,7 +223,8 @@ class _UpdateSectionState extends State<_UpdateSection> {
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = theme.cardColor;
     final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
-    final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
+    final mutedColor =
+        isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Container(
@@ -235,7 +243,8 @@ class _UpdateSectionState extends State<_UpdateSection> {
               const SizedBox(width: 8),
               Text(
                 AppStrings.appInfo,
-                style: TextStyle(color: fgColor, fontSize: 14, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: fgColor, fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -249,8 +258,10 @@ class _UpdateSectionState extends State<_UpdateSection> {
               onPressed: _checking ? null : _checkUpdate,
               icon: _checking
                   ? const SizedBox(
-                      width: 16, height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.refresh, size: 18),
               label: Text(_checking ? "..." : AppStrings.checkUpdate),
@@ -258,7 +269,8 @@ class _UpdateSectionState extends State<_UpdateSection> {
                 backgroundColor: AppColors.primaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ),
@@ -302,7 +314,8 @@ class _PlatformTile extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = theme.cardColor;
     final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
-    final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
+    final mutedColor =
+        isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Container(
@@ -312,9 +325,7 @@ class _PlatformTile extends StatelessWidget {
         color: cardColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isLoggedIn
-              ? AppColors.green.withOpacity(0.3)
-              : borderColor,
+          color: isLoggedIn ? AppColors.green.withOpacity(0.3) : borderColor,
         ),
       ),
       child: Row(

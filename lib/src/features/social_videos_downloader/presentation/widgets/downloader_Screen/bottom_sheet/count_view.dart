@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video.dart';
+import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video_link.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../../core/utils/app_colors.dart';
@@ -34,10 +35,13 @@ class CountView extends StatelessWidget {
 
 class BottomSheetCountItems extends StatefulWidget {
   final Video videoData;
-  final void Function(String)? onChanged;
+  final void Function(VideoLink)? onChanged;
 
-  const BottomSheetCountItems(
-      {super.key, required this.videoData, required this.onChanged});
+  const BottomSheetCountItems({
+    super.key,
+    required this.videoData,
+    required this.onChanged,
+  });
 
   @override
   BottomSheetCountItemsState createState() => BottomSheetCountItemsState();
@@ -181,8 +185,12 @@ class BottomSheetCountItemsState extends State<BottomSheetCountItems> {
                       onChanged: (String? newValue) {
                         setState(() {
                           selectedQuality = newValue;
-                          // Pass the selected unique quality name to parent
-                          widget.onChanged?.call(newValue ?? "");
+                          final index =
+                              uniqueQualityNames.indexOf(newValue ?? '');
+                          if (index >= 0) {
+                            widget.onChanged
+                                ?.call(widget.videoData.videoLinks[index]);
+                          }
                         });
                       },
                     ),

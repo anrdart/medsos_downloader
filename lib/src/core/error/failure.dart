@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../api/response_message.dart';
+import '../utils/app_constants.dart';
 
 abstract class Failure extends Equatable {
   final String message;
@@ -16,7 +17,22 @@ class BadRequestFailure extends Failure {
 }
 
 class ServerFailure extends Failure {
-  const ServerFailure() : super(message: Authorized.internalServerError);
+  const ServerFailure({String? message})
+      : super(message: message ?? Authorized.internalServerError);
+}
+
+class AuthRequiredFailure extends Failure {
+  final SocialPlatform platform;
+  final String sourceCode;
+
+  const AuthRequiredFailure({
+    required this.platform,
+    required this.sourceCode,
+    required String message,
+  }) : super(message: message);
+
+  @override
+  List<Object?> get props => [message, platform, sourceCode];
 }
 
 class NotFoundFailure extends Failure {
@@ -29,7 +45,8 @@ class NoInternetConnectionFailure extends Failure {
 }
 
 class BadCertificateFailure extends Failure {
-  const BadCertificateFailure() : super(message: Authorized.badRequestCertificateFailure);
+  const BadCertificateFailure()
+      : super(message: Authorized.badRequestCertificateFailure);
 }
 
 class ConnectionErrorFailure extends Failure {

@@ -25,6 +25,21 @@ class DownloaderGetVideoSuccess extends DownloaderState {
   List<Object?> get props => [video];
 }
 
+class DownloaderAuthRequired extends DownloaderState {
+  final SocialPlatform platform;
+  final String sourceUrl;
+  final String message;
+
+  const DownloaderAuthRequired({
+    required this.platform,
+    required this.sourceUrl,
+    required this.message,
+  });
+
+  @override
+  List<Object?> get props => [platform, sourceUrl, message];
+}
+
 class DownloaderGetVideoFailure extends DownloaderState {
   final String message;
 

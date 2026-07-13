@@ -7,6 +7,7 @@ import '../../../../core/utils/app_enums.dart';
 class DownloadItem extends Equatable {
   final Video video;
   final String selectedLink;
+  final String selectedLinkId;
   final DownloadStatus status;
   final String path;
   final double progress;
@@ -18,6 +19,7 @@ class DownloadItem extends Equatable {
   DownloadItem({
     required this.video,
     required this.selectedLink,
+    this.selectedLinkId = '',
     required this.status,
     required this.path,
     this.progress = 0.0,
@@ -31,6 +33,7 @@ class DownloadItem extends Equatable {
   List<Object?> get props => [
         video,
         selectedLink,
+        selectedLinkId,
         status,
         path,
         progress,
@@ -45,6 +48,7 @@ class DownloadItem extends Equatable {
   DownloadItem copyWith({
     Video? video,
     String? selectedLink,
+    String? selectedLinkId,
     DownloadStatus? status,
     String? path,
     double? progress,
@@ -56,6 +60,7 @@ class DownloadItem extends Equatable {
     return DownloadItem(
       video: video ?? this.video,
       selectedLink: selectedLink ?? this.selectedLink,
+      selectedLinkId: selectedLinkId ?? this.selectedLinkId,
       status: status ?? this.status,
       path: path ?? this.path,
       progress: progress ?? this.progress,
@@ -70,6 +75,7 @@ class DownloadItem extends Equatable {
     return {
       'video': video.toJson(),
       'selectedLink': selectedLink,
+      'selectedLinkId': selectedLinkId,
       'status': status.name,
       'path': path,
       'progress': progress,
@@ -84,6 +90,7 @@ class DownloadItem extends Equatable {
     return DownloadItem(
       video: Video.fromJson(json['video']),
       selectedLink: json['selectedLink'],
+      selectedLinkId: json['selectedLinkId']?.toString() ?? '',
       status: DownloadStatus.values.firstWhere(
         (e) => e.name == json['status'],
         orElse: () => DownloadStatus.error,
@@ -122,10 +129,11 @@ class DownloadItem extends Equatable {
     SocialPlatform.facebook: ['facebook.com', 'fb.watch', 'fb.com'],
     SocialPlatform.youtube: ['youtube.com', 'youtu.be', 'youtube-nocookie.com'],
     SocialPlatform.twitter: ['twitter.com', 'x.com', 't.co'],
-    SocialPlatform.bilibili: ['bilibili.com', 'b23.tv'],
+    SocialPlatform.bilibili: ['bilibili.tv', 'biliintl.com'],
   };
 
-  static String platformNameOf(SocialPlatform p) => _platformNames[p] ?? "Unknown";
+  static String platformNameOf(SocialPlatform p) =>
+      _platformNames[p] ?? "Unknown";
 
   static const Map<SocialPlatform, String> _platformNames = {
     SocialPlatform.facebook: "Facebook",
@@ -135,7 +143,7 @@ class DownloadItem extends Equatable {
     SocialPlatform.youtube: "YouTube",
     SocialPlatform.youtubeMusic: "YouTube Music",
     SocialPlatform.tiktok: "TikTok",
-    SocialPlatform.bilibili: "Bilibili",
+    SocialPlatform.bilibili: "Bilibili Global / Bstation",
     SocialPlatform.unknown: "Unknown",
   };
 }

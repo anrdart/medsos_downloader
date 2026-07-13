@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 
 import '../../container_injector.dart';
+import 'media_file_utils.dart';
 import '../api/interceptors.dart';
 import '../utils/app_constants.dart';
 
@@ -127,7 +128,7 @@ class DioHelper {
         estimatedTotal = int.tryParse(estimatedLength) ?? -1;
       }
 
-      final file = File(savePath);
+      final file = File('$savePath.part');
 
       final directory = file.parent;
       if (!directory.existsSync()) {
@@ -164,15 +165,23 @@ class DioHelper {
         await file.delete();
         throw Exception("Download failed: File is empty");
       }
+      final prefix = file.readAsBytesSync().take(32).toList();
+      MediaFileUtils.validate(
+        bytes: prefix,
+        contentType: headers.value('content-type'),
+        received: fileSize,
+        expected: estimatedTotal,
+      );
+      final destination = File(savePath);
+      if (destination.existsSync()) await destination.delete();
+      await file.rename(savePath);
 
       return response;
     } catch (e) {
       try {
         await raf?.close();
-        final file = File(savePath);
-        if (file.existsSync() && file.lengthSync() == 0) {
-          await file.delete();
-        }
+        final file = File('$savePath.part');
+        if (file.existsSync()) await file.delete();
       } catch (_) {}
       rethrow;
     }
@@ -183,13 +192,17 @@ class DioHelper {
 
     // MP4/MOV: ftyp atom at offset 4
     if (bytes.length >= 8 &&
-        bytes[4] == 0x66 && bytes[5] == 0x74 &&
-        bytes[6] == 0x79 && bytes[7] == 0x70) {
+        bytes[4] == 0x66 &&
+        bytes[5] == 0x74 &&
+        bytes[6] == 0x79 &&
+        bytes[7] == 0x70) {
       return '.mp4';
     }
     // WebM: 1A 45 DF A3
-    if (bytes[0] == 0x1A && bytes[1] == 0x45 &&
-        bytes[2] == 0xDF && bytes[3] == 0xA3) {
+    if (bytes[0] == 0x1A &&
+        bytes[1] == 0x45 &&
+        bytes[2] == 0xDF &&
+        bytes[3] == 0xA3) {
       return '.webm';
     }
     // MKV shares same magic as WebM
@@ -198,25 +211,35 @@ class DioHelper {
       return '.flv';
     }
     // AVI: RIFF....AVI
-    if (bytes[0] == 0x52 && bytes[1] == 0x49 &&
-        bytes[2] == 0x46 && bytes[3] == 0x46 &&
+    if (bytes[0] == 0x52 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46 &&
+        bytes[3] == 0x46 &&
         bytes.length >= 12 &&
-        bytes[8] == 0x41 && bytes[9] == 0x56 && bytes[10] == 0x49) {
+        bytes[8] == 0x41 &&
+        bytes[9] == 0x56 &&
+        bytes[10] == 0x49) {
       return '.avi';
     }
     // JPEG
     if (bytes[0] == 0xFF && bytes[1] == 0xD8) return '.jpg';
     // PNG
-    if (bytes[0] == 0x89 && bytes[1] == 0x50 &&
-        bytes[2] == 0x4E && bytes[3] == 0x47) {
+    if (bytes[0] == 0x89 &&
+        bytes[1] == 0x50 &&
+        bytes[2] == 0x4E &&
+        bytes[3] == 0x47) {
       return '.png';
     }
     // WebP: RIFF....WEBP
-    if (bytes[0] == 0x52 && bytes[1] == 0x49 &&
-        bytes[2] == 0x46 && bytes[3] == 0x46 &&
+    if (bytes[0] == 0x52 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46 &&
+        bytes[3] == 0x46 &&
         bytes.length >= 12 &&
-        bytes[8] == 0x57 && bytes[9] == 0x45 &&
-        bytes[10] == 0x42 && bytes[11] == 0x50) {
+        bytes[8] == 0x57 &&
+        bytes[9] == 0x45 &&
+        bytes[10] == 0x42 &&
+        bytes[11] == 0x50) {
       return '.webp';
     }
     // GIF
@@ -271,9 +294,10 @@ class DioHelper {
       }
 
       final contentLength = response.headers.value('content-length');
-      final total = contentLength != null ? int.tryParse(contentLength) ?? -1 : -1;
+      final total =
+          contentLength != null ? int.tryParse(contentLength) ?? -1 : -1;
 
-      final file = File(savePath);
+      final file = File('$savePath.part');
 
       final directory = file.parent;
       if (!directory.existsSync()) {
@@ -310,38 +334,27 @@ class DioHelper {
         throw Exception("Image download failed: File is empty");
       }
 
-      final bytes = file.readAsBytesSync().take(10).toList();
-      if (bytes.length >= 4) {
-        bool isValidImage = false;
-
-        if (bytes[0] == 0xFF && bytes[1] == 0xD8) isValidImage = true;
-        if (bytes[0] == 0x89 &&
-            bytes[1] == 0x50 &&
-            bytes[2] == 0x4E &&
-            bytes[3] == 0x47) {
-          isValidImage = true;
-        }
-        if (bytes[0] == 0x52 &&
-            bytes[1] == 0x49 &&
-            bytes[2] == 0x46 &&
-            bytes[3] == 0x46) {
-          isValidImage = true;
-        }
-
-        if (!isValidImage) {
-          await file.delete();
-          throw Exception("Downloaded file is not a valid image format");
-        }
+      final bytes = file.readAsBytesSync().take(32).toList();
+      final extension = MediaFileUtils.validate(
+        bytes: bytes,
+        contentType: response.headers.value('content-type'),
+        received: fileSize,
+        expected: total,
+      );
+      if (!const ['.jpg', '.png', '.webp', '.gif'].contains(extension)) {
+        await file.delete();
+        throw Exception("Downloaded file is not a valid image format");
       }
+      final destination = File(savePath);
+      if (destination.existsSync()) await destination.delete();
+      await file.rename(savePath);
 
       return response;
     } catch (e) {
       try {
         await raf?.close();
-        final file = File(savePath);
-        if (file.existsSync() && file.lengthSync() == 0) {
-          await file.delete();
-        }
+        final file = File('$savePath.part');
+        if (file.existsSync()) await file.delete();
       } catch (_) {}
       rethrow;
     }

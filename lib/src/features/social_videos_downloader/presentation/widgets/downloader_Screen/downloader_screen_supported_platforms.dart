@@ -16,12 +16,12 @@ class _State extends State<DownloaderScreenSupportedPlatforms> {
   static const _platforms = [
     _P("Facebook", "assets/images/facebook.svg"),
     _P("Instagram", "assets/images/instagram.svg"),
-    _P("Threads", "assets/images/threads.svg"),
+    _P("Threads (Publik)", "assets/images/threads.svg"),
     _P("Twitter/X", "assets/images/twitter.svg"),
     _P("YouTube", "assets/images/youtube.svg"),
     _P("YouTube Music", "assets/images/youtube_music.svg"),
     _P("TikTok", "assets/images/tiktok.svg"),
-    _P("Bilibili", "assets/images/bilibili.svg"),
+    _P("Bilibili Global", "assets/images/bilibili.svg"),
   ];
 
   @override
@@ -81,9 +81,13 @@ class _PlatformChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF1A1A2E) : const Color(0xFFE8EAF0);
-    final borderColor = isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
-    final iconColor = isDark ? Colors.white.withOpacity(0.85) : Colors.black.withOpacity(0.7);
-    final textColor = isDark ? Colors.white.withOpacity(0.85) : Colors.black.withOpacity(0.7);
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.12)
+        : Colors.black.withOpacity(0.08);
+    final iconColor =
+        isDark ? Colors.white.withOpacity(0.85) : Colors.black.withOpacity(0.7);
+    final textColor =
+        isDark ? Colors.white.withOpacity(0.85) : Colors.black.withOpacity(0.7);
 
     return Container(
       height: 38,

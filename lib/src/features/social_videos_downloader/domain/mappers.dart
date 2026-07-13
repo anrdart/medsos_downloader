@@ -22,10 +22,7 @@ extension TiktokVideoExtension on VideoModel {
 }
 
 extension VideoDataExtension on VideoLinkModel {
-  VideoLink toDomain() => VideoLink(
-        quality: quality,
-        link: link,
-      );
+  VideoLink toDomain() => VideoLink.fromJson(toJson());
 }
 
 extension VideoStatsExtension on VideoStatsModel {

@@ -45,7 +45,9 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
         final isDark = theme.brightness == Brightness.dark;
         final cardColor = theme.cardColor;
         final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
-        final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
+        final mutedColor = isDark
+            ? AppColors.mutedForegroundDark
+            : AppColors.mutedForegroundLight;
         return Consumer<LanguageProvider>(
           builder: (context, languageProvider, child) {
             return Dialog(
@@ -70,7 +72,10 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [AppColors.primaryColor, AppColors.accentViolet],
+                          colors: [
+                            AppColors.primaryColor,
+                            AppColors.accentViolet
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -144,7 +149,10 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
                             height: 280,
                             decoration: BoxDecoration(
                               border: Border.all(
-                                  color: isDark ? AppColors.borderDark : AppColors.borderLight, width: 2),
+                                  color: isDark
+                                      ? AppColors.borderDark
+                                      : AppColors.borderLight,
+                                  width: 2),
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: ClipRRect(
@@ -154,7 +162,9 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(
-                                    color: isDark ? AppColors.inputDark : AppColors.inputLight,
+                                    color: isDark
+                                        ? AppColors.inputDark
+                                        : AppColors.inputLight,
                                     child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
@@ -163,8 +173,8 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
                                             color: mutedColor, size: 40),
                                         const SizedBox(height: 10),
                                         Text(AppStrings.qrisImageNotFound,
-                                            style: TextStyle(
-                                                color: mutedColor)),
+                                            style:
+                                                TextStyle(color: mutedColor)),
                                       ],
                                     ),
                                   );

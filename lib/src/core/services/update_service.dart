@@ -66,7 +66,8 @@ class UpdateService {
         'is_forced': false,
       });
       await config.fetchAndActivate();
-      developer.log('Firebase Remote Config initialized', name: 'UpdateService');
+      developer.log('Firebase Remote Config initialized',
+          name: 'UpdateService');
     } catch (e) {
       developer.log('Remote Config init failed: $e', name: 'UpdateService');
     }
@@ -99,7 +100,8 @@ class UpdateService {
 
       // Compare by semver name: split-per-abi offsets the versionCode
       // (armv7 +1000 / arm64 +2000 / x86_64 +4000) so codes aren't comparable.
-      final isNewer = isNewerVersionName(latestVersionName, packageInfo.version);
+      final isNewer =
+          isNewerVersionName(latestVersionName, packageInfo.version);
 
       // Resolve the right APK for this device's ABI.
       final downloadUrl = await _resolveDownloadUrl(downloadUrlBase, legacyUrl);
@@ -115,7 +117,8 @@ class UpdateService {
           isForced: isForced,
         );
         _updateController.add(info);
-        developer.log('Update available: $latestVersionName', name: 'UpdateService');
+        developer.log('Update available: $latestVersionName',
+            name: 'UpdateService');
         return info;
       }
     } catch (e) {
@@ -137,11 +140,13 @@ class UpdateService {
       developer.log('ABI detection failed: $e', name: 'UpdateService');
     }
     final file = abiApkFileName(abis);
-    final trimmed = base.endsWith('/') ? base.substring(0, base.length - 1) : base;
+    final trimmed =
+        base.endsWith('/') ? base.substring(0, base.length - 1) : base;
     return '$trimmed/$file';
   }
 
-  Future<String?> downloadUpdate(String url, {Function(double)? onProgress}) async {
+  Future<String?> downloadUpdate(String url,
+      {Function(double)? onProgress}) async {
     try {
       final dir = await getTemporaryDirectory();
       final savePath = '${dir.path}/el_saver_update.apk';
@@ -194,14 +199,16 @@ class UpdateService {
       // Validate downloaded file is actually an APK
       final file = File(savePath);
       if (!file.existsSync() || file.lengthSync() < 1000) {
-        developer.log('Download invalid: file too small or missing', name: 'UpdateService');
+        developer.log('Download invalid: file too small or missing',
+            name: 'UpdateService');
         return null;
       }
 
       // Check APK magic bytes (PK zip header: 50 4B 03 04)
       final bytes = file.readAsBytesSync().take(4).toList();
       if (bytes.length < 4 || bytes[0] != 0x50 || bytes[1] != 0x4B) {
-        developer.log('Download invalid: not an APK file', name: 'UpdateService');
+        developer.log('Download invalid: not an APK file',
+            name: 'UpdateService');
         await file.delete();
         return null;
       }
@@ -223,7 +230,8 @@ class UpdateService {
         });
         if (success != true) {
           // Fallback: open with system installer if silent install failed
-          developer.log('Silent install failed, falling back to system installer',
+          developer.log(
+              'Silent install failed, falling back to system installer',
               name: 'UpdateService');
           return false;
         }

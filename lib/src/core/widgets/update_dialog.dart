@@ -73,7 +73,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = theme.cardColor;
     final fgColor = theme.textTheme.bodyMedium?.color ?? Colors.white;
-    final mutedColor = isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
+    final mutedColor =
+        isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
 
     return Dialog(
       backgroundColor: cardColor,
@@ -99,7 +100,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
   Widget _buildIcon() {
     switch (_phase) {
       case _Phase.info:
-        return const Icon(Icons.system_update, color: AppColors.primaryColor, size: 48);
+        return const Icon(Icons.system_update,
+            color: AppColors.primaryColor, size: 48);
       case _Phase.downloading:
         return SizedBox(
           width: 48,
@@ -107,7 +109,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
           child: CircularProgressIndicator(
             value: _progress > 0 ? _progress : null,
             strokeWidth: 3,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+            valueColor:
+                const AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
           ),
         );
       case _Phase.installing:
@@ -121,14 +124,18 @@ class _UpdateDialogState extends State<UpdateDialog> {
         );
       case _Phase.done:
         return Container(
-          width: 48, height: 48,
-          decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
+          width: 48,
+          height: 48,
+          decoration: const BoxDecoration(
+              color: AppColors.green, shape: BoxShape.circle),
           child: const Icon(Icons.check, color: Colors.white, size: 28),
         );
       case _Phase.error:
         return Container(
-          width: 48, height: 48,
-          decoration: const BoxDecoration(color: AppColors.red, shape: BoxShape.circle),
+          width: 48,
+          height: 48,
+          decoration:
+              const BoxDecoration(color: AppColors.red, shape: BoxShape.circle),
           child: const Icon(Icons.close, color: Colors.white, size: 28),
         );
     }
@@ -144,7 +151,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
     };
     return Text(
       titles[_phase]!,
-      style: TextStyle(color: fgColor, fontSize: 18, fontWeight: FontWeight.w600),
+      style:
+          TextStyle(color: fgColor, fontSize: 18, fontWeight: FontWeight.w600),
     );
   }
 
@@ -153,17 +161,21 @@ class _UpdateDialogState extends State<UpdateDialog> {
     if (_phase == _Phase.downloading) {
       return Text(
         "${(_progress * 100).toInt()}%",
-        style: TextStyle(color: AppColors.primaryColor, fontSize: 20, fontWeight: FontWeight.w700),
+        style: TextStyle(
+            color: AppColors.primaryColor,
+            fontSize: 20,
+            fontWeight: FontWeight.w700),
       );
     }
     if (_phase == _Phase.error) {
-      return Text(_errorMsg, textAlign: TextAlign.center,
-        style: TextStyle(color: mutedColor, fontSize: 13));
+      return Text(_errorMsg,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: mutedColor, fontSize: 13));
     }
     if (_phase == _Phase.done) {
       return Text("Update sedang diinstall. Tunggu sebentar...",
-        textAlign: TextAlign.center,
-        style: TextStyle(color: mutedColor, fontSize: 13));
+          textAlign: TextAlign.center,
+          style: TextStyle(color: mutedColor, fontSize: 13));
     }
     return Text(
       "v${info.currentVersionName} → v${info.versionName}",
@@ -187,7 +199,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(info.changelog,
-                  style: TextStyle(color: mutedColor, fontSize: 12)),
+                    style: TextStyle(color: mutedColor, fontSize: 12)),
               ),
               const SizedBox(height: 16),
             ],
@@ -199,7 +211,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
                   backgroundColor: AppColors.primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 child: Text(AppStrings.downloadAndInstall),
               ),
@@ -208,7 +221,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(AppStrings.later, style: TextStyle(color: mutedColor)),
+                child:
+                    Text(AppStrings.later, style: TextStyle(color: mutedColor)),
               ),
             ],
           ],
@@ -223,7 +237,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 value: _progress > 0 ? _progress : null,
                 minHeight: 6,
                 backgroundColor: mutedColor.withOpacity(0.1),
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
               ),
             ),
             const SizedBox(height: 12),
@@ -254,8 +269,10 @@ class _UpdateDialogState extends State<UpdateDialog> {
                     onPressed: () => setState(() => _phase = _Phase.info),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primaryColor,
-                      side: BorderSide(color: AppColors.primaryColor.withOpacity(0.3)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      side: BorderSide(
+                          color: AppColors.primaryColor.withOpacity(0.3)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                     child: const Text("Coba Lagi"),
                   ),
@@ -264,7 +281,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 Expanded(
                   child: TextButton(
                     onPressed: _openManualInstaller,
-                    child: Text("Install Manual", style: TextStyle(color: mutedColor)),
+                    child: Text("Install Manual",
+                        style: TextStyle(color: mutedColor)),
                   ),
                 ),
               ],

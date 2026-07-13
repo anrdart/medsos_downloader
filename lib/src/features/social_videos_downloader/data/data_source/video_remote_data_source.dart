@@ -3,16 +3,22 @@ import 'package:dio/dio.dart';
 import 'dart:developer' as developer;
 import 'dart:io';
 
+import '../../../../core/error/failure.dart';
 import '../../../../core/helpers/dio_helper.dart';
 import '../../../../core/utils/app_constants.dart';
 import '../../../../core/utils/app_strings.dart';
 import '../../../../core/utils/api_config.dart';
+import '../../domain/entities/resolved_media.dart';
+import '../../domain/entities/video_link.dart';
+import 'download_error_classifier.dart';
 
 abstract class VideoBaseRemoteDataSource {
   Future<VideoModel> getVideo(String videoLink);
 
   /// Resolve an audio-only (MP3) download URL for [videoLink] on demand.
   Future<String> getAudioUrl(String videoLink);
+
+  Future<ResolvedMedia> resolveMedia(String sourceUrl, VideoLink option);
 
   Future<String> saveVideo({
     required String videoLink,
@@ -29,6 +35,32 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
 
   @override
   Future<VideoModel> getVideo(String videoLink) async {
+    Object? relevantFailure;
+    AuthRequiredFailure? authFailure;
+    if (_isTikTokUrl(videoLink) && ApiConfig.useTikwmFallback) {
+      try {
+        final result = await _tryGetVideoFromTikwm(videoLink);
+        if (result.success && result.videoLinks.isNotEmpty) return result;
+      } catch (e) {
+        relevantFailure ??= e;
+        developer.log("TikWM primary failed: $e", name: "VideoAPI");
+      }
+    }
+    // Discovery comes from yt-dlp /info so the UI can show real qualities.
+    // Cobalt remains the strongest fallback for galleries/pickers.
+    try {
+      final discovered = await _tryGetVideoInfoFromYtdlp(videoLink);
+      if (discovered.success && discovered.videoLinks.isNotEmpty) {
+        return discovered;
+      }
+    } catch (e) {
+      relevantFailure ??= e;
+      final classified =
+          DownloadErrorClassifier.classify(e.toString(), videoLink);
+      if (classified is AuthRequiredFailure) authFailure ??= classified;
+      developer.log("yt-dlp info discovery failed: $e", name: "VideoAPI");
+    }
+
     // Try Cobalt instances
     for (final instance in ApiConfig.cobaltInstances) {
       try {
@@ -38,6 +70,10 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
           return result;
         }
       } catch (e) {
+        relevantFailure ??= e;
+        final classified =
+            DownloadErrorClassifier.classify(e.toString(), videoLink);
+        if (classified is AuthRequiredFailure) authFailure ??= classified;
         developer.log("Cobalt instance $instance failed: $e", name: "VideoAPI");
       }
     }
@@ -51,22 +87,18 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
         return result;
       }
     } catch (e) {
+      relevantFailure ??= e;
+      final classified =
+          DownloadErrorClassifier.classify(e.toString(), videoLink);
+      if (classified is AuthRequiredFailure) authFailure ??= classified;
       developer.log("yt-dlp fallback failed: $e", name: "VideoAPI");
     }
 
-    // TikWM fallback for TikTok/Douyin
-    if (ApiConfig.useTikwmFallback && _isTikTokUrl(videoLink)) {
-      try {
-        final result = await _tryGetVideoFromTikwm(videoLink);
-        if (result.success && result.videoLinks.isNotEmpty) {
-          developer.log("Success via TikWM fallback", name: "VideoAPI");
-          return result;
-        }
-      } catch (e) {
-        developer.log("TikWM fallback failed: $e", name: "VideoAPI");
-      }
+    if (authFailure != null) throw authFailure;
+    if (relevantFailure != null) {
+      developer.log('Final extractor failure: $relevantFailure',
+          name: 'VideoAPI');
     }
-
     return VideoModel(
       success: false,
       message: ApiConfig.allApisFailed,
@@ -118,20 +150,22 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
     final data = response.data as Map<String, dynamic>;
     final status = data["status"] as String?;
 
+    if (status == "local-processing") {
+      throw Exception("Cobalt requires local processing; use yt-dlp fallback");
+    }
+
     if (status == "error") {
       final error = data["error"];
       final code = error is Map ? error["code"]?.toString() : error?.toString();
       if (code != null && code.contains("youtube.login")) {
-        throw Exception(
-            "Video ini membutuhkan autentikasi YouTube di server. "
+        throw Exception("Video ini membutuhkan autentikasi YouTube di server. "
             "Hubungi admin server Cobalt untuk konfigurasi cookies YouTube.");
       }
       if (code != null && code.contains("link.invalid")) {
         throw Exception("Link tidak valid atau tidak didukung.");
       }
       if (code != null && code.contains("fetch.empty")) {
-        throw Exception(
-            "Tidak bisa mengakses konten. Video mungkin private, "
+        throw Exception("Tidak bisa mengakses konten. Video mungkin private, "
             "dihapus, atau platform membutuhkan cookies di server.");
       }
       throw Exception("Cobalt error: $code");
@@ -149,8 +183,7 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
       return VideoModel.fromCobalt(data, videoLink);
     }
 
-    throw Exception(
-        "Server tidak bisa memproses video ini. "
+    throw Exception("Server tidak bisa memproses video ini. "
         "Coba video lain atau hubungi admin server.");
   }
 
@@ -159,7 +192,7 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
   @override
   Future<String> getAudioUrl(String videoLink) async {
     final baseUrl = ApiConfig.ytdlpApiUrl;
-    final response = await dioHelper.post(
+    final response = await _postYtdlp(
       path: "/download",
       baseUrl: baseUrl,
       customHeaders: {
@@ -168,7 +201,7 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
         "X-Api-Key": ApiConfig.ytdlpApiKey,
       },
       connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 120),
+      receiveTimeout: const Duration(seconds: 210),
       data: {"url": videoLink, "mode": "audio"},
     );
     final data = response.data as Map<String, dynamic>?;
@@ -247,11 +280,112 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
         lower.contains("v.douyin.com");
   }
 
+  Future<Response> _postYtdlp({
+    required String path,
+    required String baseUrl,
+    required Map<String, dynamic> customHeaders,
+    required Duration connectTimeout,
+    required Duration receiveTimeout,
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      return await dioHelper.post(
+        path: path,
+        baseUrl: baseUrl,
+        customHeaders: customHeaders,
+        connectTimeout: connectTimeout,
+        receiveTimeout: receiveTimeout,
+        data: data,
+      );
+    } on DioException catch (error) {
+      final body = error.response?.data;
+      if (body is Map && body['detail'] != null) {
+        throw Exception(body['detail'].toString());
+      }
+      rethrow;
+    }
+  }
+
+  Future<VideoModel> _tryGetVideoInfoFromYtdlp(String videoLink) async {
+    final baseUrl = ApiConfig.ytdlpApiUrl;
+    final response = await _postYtdlp(
+      path: "/info",
+      baseUrl: baseUrl,
+      customHeaders: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-Api-Key": ApiConfig.ytdlpApiKey,
+      },
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 210),
+      data: {"url": videoLink},
+    );
+    final data = response.data as Map<String, dynamic>?;
+    if (data == null || data["status"] != "ok") {
+      throw Exception(data?["detail"]?.toString() ?? "yt-dlp info failed");
+    }
+    return VideoModel.fromYtdlpInfo(data, videoLink);
+  }
+
+  @override
+  Future<ResolvedMedia> resolveMedia(String sourceUrl, VideoLink option) async {
+    if (!option.isDeferred && option.link.isNotEmpty) {
+      return ResolvedMedia(
+        url: option.link,
+        filename: 'media${option.extension}',
+        extension: option.extension,
+        mediaKind: option.mediaKind,
+      );
+    }
+    final baseUrl = ApiConfig.ytdlpApiUrl;
+    final response = await _postYtdlp(
+      path: "/download",
+      baseUrl: baseUrl,
+      customHeaders: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-Api-Key": ApiConfig.ytdlpApiKey,
+      },
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 210),
+      data: {
+        "url": sourceUrl,
+        "quality": option.height?.toString() ?? ApiConfig.videoQuality,
+        "mode": option.mode,
+      },
+    );
+    final data = response.data as Map<String, dynamic>?;
+    if (data == null ||
+        (data["status"] != "redirect" && data["status"] != "tunnel")) {
+      throw Exception(data?["detail"]?.toString() ?? "Gagal menyiapkan media");
+    }
+    var url = data["url"]?.toString() ?? '';
+    if (url.startsWith('/')) url = '$baseUrl$url';
+    if (url.isEmpty) throw Exception('Media URL kosong');
+    final filename = data["filename"]?.toString() ?? 'media${option.extension}';
+    final extension = _extensionFromFilename(filename, option.extension);
+    final kind = data["mediaKind"] == 'audio' || extension == '.mp3'
+        ? MediaKind.audio
+        : option.mediaKind;
+    return ResolvedMedia(
+      url: url,
+      filename: filename,
+      extension: extension,
+      mediaKind: kind,
+    );
+  }
+
+  String _extensionFromFilename(String filename, String fallback) {
+    final match = RegExp(r'\.([A-Za-z0-9]+)$').firstMatch(filename);
+    if (match == null) return fallback;
+    return '.${match.group(1)!.toLowerCase()}';
+  }
+
   Future<VideoModel> _tryGetVideoFromYtdlp(String videoLink) async {
     final baseUrl = ApiConfig.ytdlpApiUrl;
     final apiKey = ApiConfig.ytdlpApiKey;
 
-    final response = await dioHelper.post(
+    final response = await _postYtdlp(
       path: "/download",
       baseUrl: baseUrl,
       customHeaders: {
@@ -259,6 +393,8 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
         "Content-Type": "application/json",
         "X-Api-Key": apiKey,
       },
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 210),
       data: {
         "url": videoLink,
         "quality": ApiConfig.videoQuality,
@@ -298,7 +434,7 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
       developer.log("Starting download: $videoLink to $savePath",
           name: "DownloadService");
 
-      if (_isImageUrl(videoLink)) {
+      if (_isImagePath(savePath)) {
         await dioHelper.downloadImage(
           savePath: savePath,
           downloadLink: videoLink,
@@ -345,10 +481,12 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
     }
   }
 
-  bool _isImageUrl(String url) {
-    return url.toLowerCase().contains('.jpg') ||
-        url.toLowerCase().contains('.jpeg') ||
-        url.toLowerCase().contains('.png') ||
-        url.toLowerCase().contains('.webp');
+  bool _isImagePath(String path) {
+    final lower = path.toLowerCase();
+    return lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.png') ||
+        lower.endsWith('.webp') ||
+        lower.endsWith('.gif');
   }
 }

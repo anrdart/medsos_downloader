@@ -39,8 +39,8 @@ class CookieExtractionService {
     // Fallback: try JavaScript extraction for non-httpOnly cookies
     if (allCookies.isEmpty) {
       try {
-        final result = await controller
-            .runJavaScriptReturningResult('document.cookie');
+        final result =
+            await controller.runJavaScriptReturningResult('document.cookie');
         final cookieStr = result.toString().replaceAll('"', '');
         _parseCookieString(cookieStr, allCookies);
       } catch (_) {}
@@ -68,6 +68,7 @@ class CookieExtractionService {
     final config = PlatformLoginConfig.getConfig(platform);
     if (config == null) return false;
 
+    if (config.manualCompletion) return cookies.isNotEmpty;
     for (final key in config.requiredCookieKeys) {
       if (cookies.containsKey(key) && cookies[key]!.isNotEmpty) {
         return true;

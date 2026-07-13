@@ -59,6 +59,35 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
     }
   }
 
+  Future<void> _showLoginRequired(
+      BuildContext context, DownloaderAuthRequired state) async {
+    final login = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Konten memerlukan login'),
+        content: Text(state.message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Login'),
+          ),
+        ],
+      ),
+    );
+    if (login != true || !context.mounted) return;
+    final success = await Navigator.of(context).pushNamed(
+      Routes.webviewLogin,
+      arguments: state.platform,
+    );
+    if (success == true && context.mounted) {
+      context.read<DownloaderBloc>().add(DownloaderGetVideo(state.sourceUrl));
+    }
+  }
+
   void _loadBannerAd() {
     _bannerAd = BannerAd(
       adUnitId: 'ca-app-pub-9374589831001594/1262943956',
@@ -106,7 +135,8 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
               }
               // Any terminal fetch state dismisses the skeleton first.
               if (state is DownloaderGetVideoSuccess ||
-                  state is DownloaderGetVideoFailure) {
+                  state is DownloaderGetVideoFailure ||
+                  state is DownloaderAuthRequired) {
                 _dismissSkeletonSheet();
               }
               if (state is DownloaderSaveVideoLoading) {
@@ -114,6 +144,9 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
               }
               if (state is DownloaderGetVideoFailure) {
                 buildToast(msg: state.message, type: ToastType.error);
+              }
+              if (state is DownloaderAuthRequired) {
+                _showLoginRequired(context, state);
               }
               if (state is DownloaderGetVideoSuccess &&
                   state.video.videoLinks.isEmpty) {
@@ -154,7 +187,9 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
                                   const DownloaderScreenSupportedPlatforms(),
                                   SizedBox(height: context.height * 0.025),
                                   _RecentDownloadsSection(
-                                    downloads: context.read<DownloaderBloc>().newDownloads,
+                                    downloads: context
+                                        .read<DownloaderBloc>()
+                                        .newDownloads,
                                   ),
                                   SizedBox(height: context.height * 0.015),
                                   // AdMob Banner
@@ -224,7 +259,8 @@ class _RecentDownloadsSection extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 10),
+                    const Icon(Icons.arrow_forward_ios,
+                        color: Colors.white, size: 10),
                   ],
                 ),
               ),
@@ -242,7 +278,8 @@ class _RecentDownloadsSection extends StatelessWidget {
               child: Text(
                 AppStrings.noDownloadsYet,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 13),
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.35), fontSize: 13),
               ),
             )
           else

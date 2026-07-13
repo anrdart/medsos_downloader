@@ -2,6 +2,8 @@ import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 import 'package:el_saver/src/features/social_videos_downloader/data/models/video_model.dart';
 import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video.dart';
+import 'package:el_saver/src/features/social_videos_downloader/domain/entities/video_link.dart';
+import 'package:el_saver/src/features/social_videos_downloader/domain/entities/resolved_media.dart';
 import 'package:el_saver/src/features/social_videos_downloader/domain/mappers.dart';
 
 import '../../../../core/error/error_handler.dart';
@@ -22,6 +24,8 @@ class VideoRepo implements VideoBaseRepo {
       return Right(video.toDomain());
     } on DioException catch (error) {
       return Left(ErrorHandler.handle(error).failure);
+    } on Failure catch (failure) {
+      return Left(failure);
     } catch (error) {
       return Left(ServerFailure());
     }
@@ -34,7 +38,21 @@ class VideoRepo implements VideoBaseRepo {
       return Right(url);
     } on DioException catch (error) {
       return Left(ErrorHandler.handle(error).failure);
+    } on Failure catch (failure) {
+      return Left(failure);
     } catch (error) {
+      return Left(ServerFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, ResolvedMedia>> resolveMedia(
+      String sourceUrl, VideoLink option) async {
+    try {
+      return Right(await remoteDataSource.resolveMedia(sourceUrl, option));
+    } on DioException catch (error) {
+      return Left(ErrorHandler.handle(error).failure);
+    } catch (_) {
       return Left(ServerFailure());
     }
   }
@@ -56,6 +74,8 @@ class VideoRepo implements VideoBaseRepo {
       return Right(message);
     } on DioException catch (error) {
       return Left(ErrorHandler.handle(error).failure);
+    } on Failure catch (failure) {
+      return Left(failure);
     } catch (error) {
       return Left(ServerFailure());
     }

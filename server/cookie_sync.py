@@ -39,14 +39,15 @@ VALID_PLATFORMS = {
     "facebook", "bilibili", "tiktok",
 }
 
-# yt-dlp cookie domains per platform (Netscape format needs a domain)
-# YouTube Music shares youtube cookies; Threads shares instagram cookies.
+# yt-dlp cookie domains per platform (Netscape format needs a domain).
+# YouTube Music shares youtube cookies. Public Threads extraction uses no cookies.
 _COOKIE_DOMAINS = {
     "youtube": ".youtube.com",
     "instagram": ".instagram.com",
     "twitter": ".twitter.com",
     "facebook": ".facebook.com",
-    "bilibili": ".bilibili.com",
+    # Bilibili Global/Bstation. Keep supplied keys verbatim; do not invent auth keys.
+    "bilibili": ".bilibili.tv",
     "tiktok": ".tiktok.com",
 }
 
