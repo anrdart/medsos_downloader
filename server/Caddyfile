@@ -1,4 +1,8 @@
-api.ekalliptus.com {
+{
+    auto_https disable_redirects
+}
+
+https://api.ekalliptus.com {
     handle_path /ytdlp/* {
         reverse_proxy 127.0.0.1:9002
     }
