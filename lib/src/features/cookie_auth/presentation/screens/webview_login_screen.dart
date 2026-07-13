@@ -28,29 +28,38 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
   bool _extracted = false;
   String _statusText = "Menunggu login...";
 
+  bool get _isManual => _config.manualCompletion;
+
   @override
   void initState() {
     super.initState();
     _config = PlatformLoginConfig.getConfig(widget.platform)!;
+    if (_config.manualCompletion) {
+      _statusText = "Login di halaman ini, lalu tekan tombol 'Selesai Login'.";
+    }
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(NavigationDelegate(
         onPageStarted: (url) {
           if (mounted) setState(() => _loading = true);
-          _onUrlChanged(url);
+          if (!_config.manualCompletion) _onUrlChanged(url);
         },
         onPageFinished: (url) {
           if (mounted) setState(() => _loading = false);
-          _tryExtractCookies("pageFinished");
+          if (!_config.manualCompletion) _tryExtractCookies("pageFinished");
         },
         onUrlChange: (change) {
-          if (change.url != null) _onUrlChanged(change.url!);
+          if (change.url != null && !_config.manualCompletion) {
+            _onUrlChanged(change.url!);
+          }
         },
         onWebResourceError: (error) {
           // Page load failed (timeout etc) - still try to extract cookies
           // because login might have succeeded before the redirect timed out
-          _tryExtractCookies("webError: ${error.description}");
+          if (!_config.manualCompletion) {
+            _tryExtractCookies("webError: ${error.description}");
+          }
         },
       ))
       ..setUserAgent(
@@ -137,9 +146,12 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
               style: TextStyle(color: fgColor, fontSize: 16),
             ),
             actions: [
-              if (_config.manualCompletion)
+              if (_isManual)
                 TextButton(
-                  onPressed: () => _tryExtractCookies('manual'),
+                  onPressed: () {
+                    setState(() => _statusText = 'Mengambil cookies...');
+                    _tryExtractCookies('manual');
+                  },
                   child: const Text('Selesai Login'),
                 ),
               if (_loading)
