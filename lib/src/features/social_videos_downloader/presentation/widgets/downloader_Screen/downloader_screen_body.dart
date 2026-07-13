@@ -10,7 +10,6 @@ import 'package:el_saver/src/features/social_videos_downloader/presentation/widg
 
 import '../../../../../config/routes_manager.dart';
 import '../../../../../core/common_widgets/app_background.dart';
-import '../../../../../core/common_widgets/skeleton_loader.dart';
 import '../../../../../core/common_widgets/toast.dart';
 import '../../../../../core/utils/app_colors.dart';
 import '../../../../../core/utils/app_enums.dart';
@@ -18,7 +17,6 @@ import '../../../../../core/utils/app_strings.dart';
 import '../../../../../core/providers/language_provider.dart';
 import '../../../domain/entities/download_item.dart';
 import '../../bloc/downloader_bloc/downloader_bloc.dart';
-import 'bottom_sheet/downloader_bottom_sheet.dart';
 import 'downloader_screen_input_field.dart';
 import 'appbar_downloader.dart';
 
@@ -33,30 +31,11 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController videoLinkController = TextEditingController();
   BannerAd? _bannerAd;
-  bool _skeletonOpen = false;
 
   @override
   void initState() {
     super.initState();
     _loadBannerAd();
-  }
-
-  void _showSkeletonSheet(BuildContext context) {
-    if (_skeletonOpen) return;
-    _skeletonOpen = true;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const DownloadSheetSkeleton(),
-    ).whenComplete(() => _skeletonOpen = false);
-  }
-
-  void _dismissSkeletonSheet() {
-    if (_skeletonOpen) {
-      Navigator.of(context, rootNavigator: true).pop();
-      _skeletonOpen = false;
-    }
   }
 
   Future<void> _showLoginRequired(
@@ -129,19 +108,9 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
         SafeArea(
           child: BlocConsumer<DownloaderBloc, DownloaderState>(
             listener: (context, state) {
-              // Show a skeleton bottom sheet while fetching video info.
-              if (state is DownloaderGetVideoLoading) {
-                _showSkeletonSheet(context);
-              }
-              // Any terminal fetch state dismisses the skeleton first.
-              if (state is DownloaderGetVideoSuccess ||
-                  state is DownloaderGetVideoFailure ||
-                  state is DownloaderAuthRequired) {
-                _dismissSkeletonSheet();
-              }
-              if (state is DownloaderSaveVideoLoading) {
-                Navigator.of(context).pushNamed(Routes.downloads);
-              }
+              // The download bottom sheet (opened from the input field) owns the
+              // skeleton + quality picker lifecycle and listens to the bloc
+              // itself. Here we only handle toasts and login.
               if (state is DownloaderGetVideoFailure) {
                 buildToast(msg: state.message, type: ToastType.error);
               }
@@ -151,10 +120,6 @@ class _DownloaderScreenBodyState extends State<DownloaderScreenBody> {
               if (state is DownloaderGetVideoSuccess &&
                   state.video.videoLinks.isEmpty) {
                 buildToast(msg: state.video.message!, type: ToastType.error);
-              }
-              if (state is DownloaderGetVideoSuccess &&
-                  state.video.videoLinks.isNotEmpty) {
-                buildDownloadBottomSheet(context, state.video);
               }
               if (state is DownloaderSaveVideoSuccess) {
                 buildToast(msg: state.message, type: ToastType.success);
@@ -228,7 +193,11 @@ class _RecentDownloadsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final recent = downloads.take(3).toList();
+    // Newest first, capped at 3: a new download shows on top and pushes the
+    // oldest of the three off the list.
+    final sorted = [...downloads]
+      ..sort((a, b) => b.downloadTime.compareTo(a.downloadTime));
+    final recent = sorted.take(3).toList();
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: context.width * 0.05),

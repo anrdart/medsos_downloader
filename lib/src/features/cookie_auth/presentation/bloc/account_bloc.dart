@@ -55,10 +55,16 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
     );
 
     await cookieRepo.saveCookies(cookie);
-    final synced = await cookieRepo.syncToServer(cookie);
 
-    emit(LoginSuccess(platform: event.platform, synced: synced));
+    // Emit success immediately so the UI isn't blocked on the backend sync
+    // (which can take several seconds), then push the cookies to the server.
+    emit(LoginSuccess(platform: event.platform, synced: false));
     add(LoadAccounts());
+
+    final synced = await cookieRepo.syncToServer(cookie);
+    if (synced) {
+      emit(LoginSuccess(platform: event.platform, synced: true));
+    }
   }
 
   Future<void> _onLogout(

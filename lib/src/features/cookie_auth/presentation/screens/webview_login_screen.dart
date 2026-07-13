@@ -41,6 +41,23 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(NavigationDelegate(
+        onNavigationRequest: (request) {
+          final uri = Uri.tryParse(request.url);
+          // Block app deep-links (bstar://, intent://, ...) that the WebView
+          // can't load. Bilibili redirects here after a successful login, so
+          // treat the attempt as a login-success signal for manual platforms.
+          if (uri != null && uri.scheme != 'http' && uri.scheme != 'https') {
+            if (_isManual && !_extracted) {
+              if (mounted) {
+                setState(() =>
+                    _statusText = "Login terdeteksi, mengambil cookies...");
+              }
+              _tryExtractCookies("deepLink:${uri.scheme}");
+            }
+            return NavigationDecision.prevent;
+          }
+          return NavigationDecision.navigate;
+        },
         onPageStarted: (url) {
           if (mounted) setState(() => _loading = true);
           if (!_config.manualCompletion) _onUrlChanged(url);
@@ -56,13 +73,17 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
         },
         onWebResourceError: (error) {
           // Page load failed (timeout etc) - still try to extract cookies
-          // because login might have succeeded before the redirect timed out
+          // because login might have succeeded before the redirect timed out.
+          // Bilibili's post-login redirect to bstar:// surfaces here as
+          // ERR_UNKNOWN_URL_SCHEME on some WebView builds.
           if (!_config.manualCompletion) {
+            _tryExtractCookies("webError: ${error.description}");
+          } else if (_isManual && !_extracted) {
             _tryExtractCookies("webError: ${error.description}");
           }
         },
       ))
-      ..setUserAgent(
+      ..setUserAgent(_config.userAgent ??
           "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
       ..loadRequest(Uri.parse(_config.loginUrl));
   }
@@ -96,7 +117,10 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
         widget.platform,
       );
 
-      if (cookies.isEmpty) return;
+      if (cookies.isEmpty) {
+        _handleExtractionFailed(trigger, "Cookies belum tersedia.");
+        return;
+      }
 
       if (_extractionService.isLoginSuccessful(cookies, widget.platform)) {
         _extracted = true;
@@ -105,9 +129,27 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
                 CookiesExtracted(platform: widget.platform, cookies: cookies),
               );
         }
+      } else {
+        _handleExtractionFailed(
+          trigger,
+          "Login belum terdeteksi. Pastikan sudah sign-in, lalu tekan 'Selesai Login'.",
+        );
       }
     } catch (_) {
-      // JavaScript extraction failed (page not loaded) - ignore, will retry
+      _handleExtractionFailed(trigger, "Gagal mengambil cookies.");
+    }
+  }
+
+  void _handleExtractionFailed(String trigger, String message) {
+    // Auto-extraction (pageFinished/url changes) stays silent: it retries on
+    // the next event. Only the manual "Selesai Login" press surfaces a message
+    // so the user knows to finish signing in first.
+    if (trigger == 'manual' && mounted) {
+      setState(() => _statusText = message);
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: AppColors.red),
+      );
     }
   }
 

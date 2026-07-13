@@ -1,14 +1,11 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
-import 'package:el_saver/src/core/common_widgets/circular_loader_with_overlay.dart';
 import 'package:el_saver/src/core/utils/app_colors.dart';
 import 'package:el_saver/src/core/utils/app_strings.dart';
 import 'package:el_saver/src/core/providers/language_provider.dart';
 import '../../../../config/routes_manager.dart';
-import '../bloc/downloader_bloc/downloader_bloc.dart';
 import '../widgets/downloader_Screen/downloader_screen_body.dart';
 import '../widgets/downloader_Screen/downloader_screen_bottom_app_bar.dart';
 
@@ -245,26 +242,14 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<DownloaderBloc, DownloaderState>(
-      builder: (context, state) {
-        return Scaffold(
-          body: Stack(
-            children: [
-              // Main content
-              const DownloaderScreenBody(),
-              // Loading overlay
-              if (state is DownloaderGetVideoLoading)
-                const CircularLoaderWithOverlay(),
-            ],
-          ),
-          bottomNavigationBar: DownloaderBottomAppBar(
-            onSharePressed: _handleDonation,
-            onAccountsPressed: () {
-              Navigator.of(context).pushNamed(Routes.accounts);
-            },
-          ),
-        );
-      },
+    return Scaffold(
+      body: const DownloaderScreenBody(),
+      bottomNavigationBar: DownloaderBottomAppBar(
+        onSharePressed: _handleDonation,
+        onAccountsPressed: () {
+          Navigator.of(context).pushNamed(Routes.accounts);
+        },
+      ),
     );
   }
 }

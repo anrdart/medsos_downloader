@@ -125,7 +125,8 @@ class _ViewVideoScreenState extends State<ViewVideoScreen> {
         children: [
           const Icon(Icons.error, color: Colors.red, size: 48),
           const SizedBox(height: 12),
-          Text(_error!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          Text(_error!,
+              style: const TextStyle(color: Colors.grey, fontSize: 13)),
         ],
       );
     }

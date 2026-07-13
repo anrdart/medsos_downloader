@@ -10,6 +10,7 @@ import '../../../../../core/common_widgets/custom_elevated_button.dart';
 import '../../../../../core/utils/app_strings.dart';
 import '../../../../../core/providers/language_provider.dart';
 import '../../bloc/downloader_bloc/downloader_bloc.dart';
+import 'bottom_sheet/downloader_bottom_sheet.dart';
 
 class DownloaderScreenInputField extends StatelessWidget {
   final TextEditingController videoLinkController;
@@ -46,6 +47,7 @@ class DownloaderScreenInputField extends StatelessWidget {
                             context.read<DownloaderBloc>().add(
                                   DownloaderGetVideo(videoLinkController.text),
                                 );
+                            openDownloadSheet(context);
                           }
                         },
                         label: AppStrings.download,

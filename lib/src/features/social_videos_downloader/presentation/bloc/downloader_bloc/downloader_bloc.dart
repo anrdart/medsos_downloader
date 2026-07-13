@@ -13,7 +13,6 @@ import '../../../../../core/error/failure.dart';
 import '../../../../../core/helpers/dir_helper.dart';
 import '../../../../../core/helpers/media_file_utils.dart';
 import '../../../../../core/utils/app_enums.dart';
-import '../../../../../core/utils/app_strings.dart';
 import '../../../../../core/utils/app_constants.dart';
 import '../../../domain/entities/download_item.dart';
 import '../../../domain/entities/video_item.dart';
@@ -225,20 +224,31 @@ class DownloaderBloc extends Bloc<DownloaderEvent, DownloaderState> {
         emit(DownloaderSaveVideoFailure(failure.message));
       },
       (right) async {
-        String? thumbPath;
-        if (_isVideoPath(path)) {
-          thumbPath = await _generateThumbnail(path);
-        }
-
+        // Mark success immediately so the item appears without waiting on the
+        // (slow) thumbnail generation, then backfill the thumbnail after.
         _updateItem(
             index,
             item.copyWith(
               status: DownloadStatus.success,
               progress: 100.0,
-              thumbnailPath: thumbPath,
             ));
         _saveDownloadHistory();
         emit(DownloaderSaveVideoSuccess(message: right, path: path));
+
+        if (_isVideoPath(path)) {
+          final thumbPath = await _generateThumbnail(path);
+          if (thumbPath != null) {
+            final i = newDownloads.indexWhere((d) => d.path == path);
+            if (i != -1) {
+              newDownloads[i] =
+                  newDownloads[i].copyWith(thumbnailPath: thumbPath);
+              await _saveDownloadHistory();
+              // Refresh via a fresh event (not emit) — this callback runs after
+              // the handler's emitter has completed, so emitting here throws.
+              add(LoadDownloadHistory());
+            }
+          }
+        }
       },
     );
   }

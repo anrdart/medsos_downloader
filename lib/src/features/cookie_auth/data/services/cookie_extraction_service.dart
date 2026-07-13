@@ -68,7 +68,13 @@ class CookieExtractionService {
     final config = PlatformLoginConfig.getConfig(platform);
     if (config == null) return false;
 
-    if (config.manualCompletion) return cookies.isNotEmpty;
+    // For manual-completion platforms that define required cookies (e.g.
+    // Bilibili/Bstation), require those to be present — otherwise anonymous
+    // cookies set on page load would look like a successful login. Fall back
+    // to "any cookie" only when no keys are defined.
+    if (config.requiredCookieKeys.isEmpty) {
+      return config.manualCompletion ? cookies.isNotEmpty : false;
+    }
     for (final key in config.requiredCookieKeys) {
       if (cookies.containsKey(key) && cookies[key]!.isNotEmpty) {
         return true;

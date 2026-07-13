@@ -9,6 +9,11 @@ class PlatformLoginConfig {
   final List<String> cookieDomains;
   final bool manualCompletion;
 
+  /// Optional per-platform user-agent override. Some platforms (Bilibili.tv's
+  /// Google OAuth) reject the default Android WebView UA with a whitescreen,
+  /// so we present a full browser UA that Google accepts.
+  final String? userAgent;
+
   const PlatformLoginConfig({
     required this.platform,
     required this.name,
@@ -17,6 +22,7 @@ class PlatformLoginConfig {
     required this.requiredCookieKeys,
     required this.cookieDomains,
     this.manualCompletion = false,
+    this.userAgent,
   });
 
   static const List<PlatformLoginConfig> supported = [
@@ -80,19 +86,23 @@ class PlatformLoginConfig {
       requiredCookieKeys: ["sessionid"],
       cookieDomains: [".tiktok.com"],
     ),
-    PlatformLoginConfig(
-      platform: SocialPlatform.bilibili,
-      name: "Bilibili Global / Bstation",
-      loginUrl: "https://www.bilibili.tv/id",
-      successDomains: [
-        "www.bilibili.tv",
-        "bilibili.tv",
-        "passport.bilibili.tv",
-      ],
-      requiredCookieKeys: [],
-      cookieDomains: [".bilibili.tv", "passport.bilibili.tv"],
-      manualCompletion: true,
-    ),
+    // Bilibili/Bstation login is hidden until the Google OAuth whitescreen is
+    // solved. Keep the config here (commented) so it's easy to re-enable.
+    // PlatformLoginConfig(
+    //   platform: SocialPlatform.bilibili,
+    //   name: "Bilibili Global / Bstation",
+    //   loginUrl: "https://www.bilibili.tv/id",
+    //   successDomains: [
+    //     "www.bilibili.tv",
+    //     "bilibili.tv",
+    //     "passport.bilibili.tv",
+    //   ],
+    //   requiredCookieKeys: ["SESSDATA", "DedeUserID"],
+    //   cookieDomains: [".bilibili.tv", "passport.bilibili.tv"],
+    //   manualCompletion: true,
+    //   userAgent:
+    //       "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+    // ),
   ];
 
   static PlatformLoginConfig? getConfig(SocialPlatform platform) {

@@ -2,12 +2,14 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as path;
 
 import '../../../../../core/helpers/dir_helper.dart';
 import '../../../../../core/utils/app_assets.dart';
 import '../../../../../core/utils/app_colors.dart';
 import '../../../domain/entities/video_item.dart';
+import '../../bloc/downloader_bloc/downloader_bloc.dart';
 import 'media_actions.dart';
 import 'save_to_gallery_dialog.dart';
 
@@ -112,6 +114,17 @@ class OldDownloadItem extends StatelessWidget {
                         color: AppColors.green,
                         onPressed: () =>
                             _saveToGallery(context, videoItem.path),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildActionButton(
+                        context,
+                        icon: Icons.delete,
+                        color: AppColors.red,
+                        tooltip: 'Delete file',
+                        onPressed: () =>
+                            _confirmDelete(context, videoItem.path),
                       ),
                     ),
                   ],
@@ -225,6 +238,39 @@ class OldDownloadItem extends StatelessWidget {
 
   void _saveToGallery(BuildContext context, String videoPath) {
     SaveToGalleryDialog.show(context, videoPath);
+  }
+
+  void _confirmDelete(BuildContext context, String filePath) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete File'),
+        content: const Text(
+            'Delete this downloaded file permanently? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _deleteFile(context, filePath);
+            },
+            child: const Text('Delete', style: TextStyle(color: AppColors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteFile(BuildContext context, String filePath) {
+    try {
+      final file = File(filePath);
+      if (file.existsSync()) file.deleteSync();
+    } catch (_) {}
+    // Refresh the old-downloads list from disk.
+    context.read<DownloaderBloc>().add(LoadOldDownloads());
   }
 
   Widget _buildActionButton(

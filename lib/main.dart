@@ -14,7 +14,8 @@ void main() async {
 
   try {
     await MobileAds.instance.initialize();
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
     developer.log('Firebase initialized', name: 'Main');
   } catch (e) {
     developer.log('Firebase init failed (app continues): $e', name: 'Main');

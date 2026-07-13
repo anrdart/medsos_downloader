@@ -55,9 +55,17 @@ class BottomSheetCountItemsState extends State<BottomSheetCountItems> {
   void initState() {
     super.initState();
     _generateUniqueQualityNames();
-    // Set initial quality to first unique quality name
     if (uniqueQualityNames.isNotEmpty) {
-      selectedQuality = uniqueQualityNames.first;
+      // Default to the first non-audio quality and mirror it in the dropdown.
+      final links = widget.videoData.videoLinks;
+      var defaultIndex = links.indexWhere((l) => !l.isAudio);
+      if (defaultIndex < 0) defaultIndex = 0;
+      selectedQuality = uniqueQualityNames[defaultIndex];
+      // Push the default to the parent so Download works without opening the
+      // dropdown first.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onChanged?.call(links[defaultIndex]);
+      });
     }
   }
 

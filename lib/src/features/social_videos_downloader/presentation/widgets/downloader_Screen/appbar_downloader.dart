@@ -38,4 +38,4 @@ class AppBarWithLogo extends StatelessWidget {
       ),
     );
   }
-} 
+}

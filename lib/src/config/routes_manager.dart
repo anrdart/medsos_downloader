@@ -60,8 +60,7 @@ class AppRounter {
       case Routes.accounts:
         return MaterialPageRoute(
           builder: (context) => BlocProvider(
-            create: (_) =>
-                GetIt.I<AccountBloc>()..add(LoadAccounts()),
+            create: (_) => GetIt.I<AccountBloc>()..add(LoadAccounts()),
             child: const AccountsScreen(),
           ),
         );
