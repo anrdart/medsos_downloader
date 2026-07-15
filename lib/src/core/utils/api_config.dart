@@ -8,14 +8,17 @@ class ApiConfig {
     // Public no-auth instances (verified live) - fallback
     "https://co.eepy.today",
     "https://co.otomir23.me",
-    // api.cobalt.tools requires JWT; only useful if cobaltApiKey is set
-    "https://api.cobalt.tools",
   ];
 
   // Per-request timeouts (seconds). Short connect timeout so dead
   // instances are skipped fast instead of hanging the fallback chain.
   static const int cobaltConnectTimeoutSeconds = 6;
   static const int cobaltReceiveTimeoutSeconds = 20;
+
+  // yt-dlp /info is only quality discovery — keep it short so a slow/broken
+  // extractor fails fast instead of blocking the whole fetch for minutes.
+  // The heavy /download (server-side merge) still uses its own long timeout.
+  static const int ytdlpInfoTimeoutSeconds = 30;
 
   // Cobalt API key (optional - only needed if instance requires auth)
   static const String? cobaltApiKey = null;

@@ -17,8 +17,7 @@ class DownloadErrorClassifier {
         message.contains('geo') ||
         message.contains('drm') ||
         message.contains('unsupported') ||
-        message.contains('invalid url') ||
-        platform == SocialPlatform.threads;
+        message.contains('invalid url');
     if (!excluded && _requiresLogin(message)) {
       return AuthRequiredFailure(
         platform: platform,

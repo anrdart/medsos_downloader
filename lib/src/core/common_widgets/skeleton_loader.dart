@@ -37,11 +37,11 @@ class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
               colors: const [
-                Color(0x22FFFFFF),
-                Color(0x66FFFFFF),
-                Color(0x22FFFFFF),
+                Color(0x33FFFFFF),
+                Color(0xCCFFFFFF),
+                Color(0x33FFFFFF),
               ],
-              stops: const [0.35, 0.5, 0.65],
+              stops: const [0.25, 0.5, 0.75],
               transform: _SlideGradient(dx),
             ).createShader(bounds);
           },
@@ -79,7 +79,7 @@ class SkeletonBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.18),
+        color: Colors.white.withOpacity(0.30),
         borderRadius: BorderRadius.circular(radius),
       ),
     );

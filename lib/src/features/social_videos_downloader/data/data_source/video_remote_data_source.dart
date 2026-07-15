@@ -1,5 +1,6 @@
 import 'package:el_saver/src/features/social_videos_downloader/data/models/video_model.dart';
 import 'package:dio/dio.dart';
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io';
 
@@ -35,66 +36,44 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
 
   @override
   Future<VideoModel> getVideo(String videoLink) async {
+    // Collect the first meaningful failure so the final error is useful.
     Object? relevantFailure;
     AuthRequiredFailure? authFailure;
-    if (_isTikTokUrl(videoLink) && ApiConfig.useTikwmFallback) {
-      try {
-        final result = await _tryGetVideoFromTikwm(videoLink);
-        if (result.success && result.videoLinks.isNotEmpty) return result;
-      } catch (e) {
-        relevantFailure ??= e;
-        developer.log("TikWM primary failed: $e", name: "VideoAPI");
-      }
-    }
-    // Discovery comes from yt-dlp /info so the UI can show real qualities.
-    // Cobalt remains the strongest fallback for galleries/pickers.
-    try {
-      final discovered = await _tryGetVideoInfoFromYtdlp(videoLink);
-      if (discovered.success && discovered.videoLinks.isNotEmpty) {
-        return discovered;
-      }
-    } catch (e) {
+    void recordFailure(Object e) {
       relevantFailure ??= e;
       final classified =
           DownloadErrorClassifier.classify(e.toString(), videoLink);
       if (classified is AuthRequiredFailure) authFailure ??= classified;
-      developer.log("yt-dlp info discovery failed: $e", name: "VideoAPI");
     }
 
-    // Try Cobalt instances
-    for (final instance in ApiConfig.cobaltInstances) {
-      try {
-        final result = await _tryGetVideoFromCobalt(instance, videoLink);
-        if (result.success && result.videoLinks.isNotEmpty) {
-          developer.log("Success via Cobalt: $instance", name: "VideoAPI");
-          return result;
-        }
-      } catch (e) {
-        relevantFailure ??= e;
-        final classified =
-            DownloadErrorClassifier.classify(e.toString(), videoLink);
-        if (classified is AuthRequiredFailure) authFailure ??= classified;
-        developer.log("Cobalt instance $instance failed: $e", name: "VideoAPI");
-      }
-    }
+    // Build the extractor candidates in an order tuned to the platform, so we
+    // hit the most-likely-to-succeed source first instead of always paying the
+    // yt-dlp /info leg. Each candidate is an async task returning a VideoModel.
+    final tasks = _extractorsFor(videoLink);
 
-    // yt-dlp fallback for ALL platforms (strongest extractor; works for
-    // TikTok/IG/Twitter/etc. when Cobalt fails on datacenter IPs).
+    // 1) Primary extractor first (fast, platform-specific).
     try {
-      final result = await _tryGetVideoFromYtdlp(videoLink);
-      if (result.success && result.videoLinks.isNotEmpty) {
-        developer.log("Success via yt-dlp fallback", name: "VideoAPI");
-        return result;
-      }
+      final result = await tasks.first();
+      if (result.success && result.videoLinks.isNotEmpty) return result;
     } catch (e) {
-      relevantFailure ??= e;
-      final classified =
-          DownloadErrorClassifier.classify(e.toString(), videoLink);
-      if (classified is AuthRequiredFailure) authFailure ??= classified;
-      developer.log("yt-dlp fallback failed: $e", name: "VideoAPI");
+      recordFailure(e);
+      developer.log('Primary extractor failed: $e', name: 'VideoAPI');
     }
 
-    if (authFailure != null) throw authFailure;
+    // 2) Race the rest in parallel — take the first that returns a usable
+    //    result. This turns the old ~sequential worst-case (minutes) into
+    //    roughly a single slow request.
+    final rest = tasks.skip(1).toList();
+    if (rest.isNotEmpty) {
+      try {
+        final result = await _raceExtractors(rest, recordFailure);
+        if (result != null) return result;
+      } catch (e) {
+        recordFailure(e);
+      }
+    }
+
+    if (authFailure != null) throw authFailure!;
     if (relevantFailure != null) {
       developer.log('Final extractor failure: $relevantFailure',
           name: 'VideoAPI');
@@ -111,6 +90,83 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
       rId: DateTime.now().millisecondsSinceEpoch.toString(),
       videoLinks: const [],
     );
+  }
+
+  /// Ordered extractor tasks tuned per platform. The first entry is the primary
+  /// (run alone, fast); the remainder are raced in parallel as fallbacks.
+  List<Future<VideoModel> Function()> _extractorsFor(String url) {
+    Future<VideoModel> tikwm() => _tryGetVideoFromTikwm(url);
+    Future<VideoModel> ytInfo() => _tryGetVideoInfoFromYtdlp(url);
+    Future<VideoModel> ytFull() => _tryGetVideoFromYtdlp(url);
+    final cobalt = <Future<VideoModel> Function()>[
+      for (final instance in ApiConfig.cobaltInstances)
+        () => _tryGetVideoFromCobalt(instance, url),
+    ];
+
+    if (_isTikTokUrl(url) && ApiConfig.useTikwmFallback) {
+      // TikTok: TikWM is fastest & watermark-free; fall back to cobalt/yt-dlp.
+      return [tikwm, ...cobalt, ytInfo, ytFull];
+    }
+    if (_isYoutubeUrl(url)) {
+      // YouTube: yt-dlp /info gives real qualities; cobalt as backup.
+      return [ytInfo, ...cobalt, ytFull];
+    }
+    if (_isLoginGatedUrl(url)) {
+      // Stories / private content: Cobalt returns link.invalid, only yt-dlp
+      // with synced cookies can extract these. Try yt-dlp first.
+      return [ytInfo, ytFull, ...cobalt];
+    }
+    // Instagram/Threads/Twitter/X/Facebook/Bilibili.tv: cobalt (with synced
+    // cookies) first, then yt-dlp. Primary = first cobalt instance.
+    return [...cobalt, ytInfo, ytFull];
+  }
+
+  /// Runs [tasks] concurrently and completes with the first usable result.
+  /// Individual failures are recorded but don't abort the race; returns null
+  /// only when every task fails or yields no media.
+  Future<VideoModel?> _raceExtractors(
+    List<Future<VideoModel> Function()> tasks,
+    void Function(Object) onFailure,
+  ) {
+    final completer = Completer<VideoModel?>();
+    var remaining = tasks.length;
+
+    for (final task in tasks) {
+      task().then((result) {
+        if (completer.isCompleted) return;
+        if (result.success && result.videoLinks.isNotEmpty) {
+          completer.complete(result);
+        } else {
+          if (--remaining == 0 && !completer.isCompleted) {
+            completer.complete(null);
+          }
+        }
+      }).catchError((Object e) {
+        onFailure(e);
+        if (--remaining == 0 && !completer.isCompleted) {
+          completer.complete(null);
+        }
+      });
+    }
+
+    return completer.future;
+  }
+
+  bool _isYoutubeUrl(String url) {
+    final lower = url.toLowerCase();
+    return lower.contains("youtube.com") ||
+        lower.contains("youtu.be") ||
+        lower.contains("youtube-nocookie.com");
+  }
+
+  /// Login-gated content (stories, private posts) that Cobalt can't fetch —
+  /// only yt-dlp with synced cookies can, so it should lead the extractor list.
+  bool _isLoginGatedUrl(String url) {
+    final lower = url.toLowerCase();
+    return lower.contains("/stories/") ||
+        lower.contains("/story/") ||
+        lower.contains("facebook.com/share") ||
+        lower.contains("facebook.com/stories");
   }
 
   Future<VideoModel> _tryGetVideoFromCobalt(
@@ -317,7 +373,8 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
         "X-Api-Key": ApiConfig.ytdlpApiKey,
       },
       connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 210),
+      receiveTimeout:
+          const Duration(seconds: ApiConfig.ytdlpInfoTimeoutSeconds),
       data: {"url": videoLink},
     );
     final data = response.data as Map<String, dynamic>?;
