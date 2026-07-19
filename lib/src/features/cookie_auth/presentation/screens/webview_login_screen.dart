@@ -26,6 +26,7 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
   final CookieExtractionService _extractionService = CookieExtractionService();
   bool _loading = true;
   bool _extracted = false;
+  bool _extracting = false;
   String _statusText = "Menunggu login...";
 
   bool get _isManual => _config.manualCompletion;
@@ -109,7 +110,8 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
   }
 
   Future<void> _tryExtractCookies(String trigger) async {
-    if (_extracted) return;
+    if (_extracted || _extracting) return;
+    _extracting = true;
 
     try {
       final cookies = await _extractionService.extractCookies(
@@ -137,6 +139,8 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
       }
     } catch (_) {
       _handleExtractionFailed(trigger, "Gagal mengambil cookies.");
+    } finally {
+      _extracting = false;
     }
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:el_saver/src/core/error/failure.dart';
 import 'package:el_saver/src/core/utils/app_constants.dart';
 import 'package:el_saver/src/features/cookie_auth/data/models/platform_login_config.dart';
+import 'package:el_saver/src/features/cookie_auth/data/services/cookie_extraction_service.dart';
 import 'package:el_saver/src/features/social_videos_downloader/data/data_source/download_error_classifier.dart';
 
 void main() {
@@ -11,7 +12,8 @@ void main() {
       'https://instagram.com/p/x',
     );
     expect(instagram, isA<AuthRequiredFailure>());
-    expect((instagram as AuthRequiredFailure).platform, SocialPlatform.instagram);
+    expect(
+        (instagram as AuthRequiredFailure).platform, SocialPlatform.instagram);
 
     final music = DownloadErrorClassifier.classify(
       'Sign in to confirm your age',
@@ -20,7 +22,9 @@ void main() {
     expect((music as AuthRequiredFailure).platform, SocialPlatform.youtube);
   });
 
-  test('bot challenge, geo restriction, and unsupported Threads do not open login', () {
+  test(
+      'bot challenge, geo restriction, and unsupported Threads do not open login',
+      () {
     expect(
       DownloadErrorClassifier.classify(
         'youtube asked the processing instance to prove that it is not a bot',
@@ -44,11 +48,40 @@ void main() {
     );
   });
 
-  test('Bilibili config targets Global Bstation without guessed China keys', () {
-    final config = PlatformLoginConfig.getConfig(SocialPlatform.bilibili)!;
-    expect(config.loginUrl, 'https://www.bilibili.tv/id');
-    expect(config.cookieDomains, contains('.bilibili.tv'));
-    expect(config.requiredCookieKeys, isEmpty);
-    expect(config.manualCompletion, isTrue);
+  test('Meta login covers threads.com and requires complete cookie sets', () {
+    final config = PlatformLoginConfig.getConfig(SocialPlatform.instagram)!;
+    expect(
+        config.successDomains, containsAll(['threads.com', 'www.threads.com']));
+    expect(config.cookieDomains, contains('.threads.com'));
+
+    final extraction = CookieExtractionService();
+    expect(
+      extraction.isLoginSuccessful(
+        {'sessionid': 's'},
+        SocialPlatform.instagram,
+      ),
+      isFalse,
+    );
+    expect(
+      extraction.isLoginSuccessful(
+        {'sessionid': 's', 'ds_user_id': '1'},
+        SocialPlatform.instagram,
+      ),
+      isTrue,
+    );
+    expect(
+      extraction.isLoginSuccessful(
+        {'c_user': '1'},
+        SocialPlatform.facebook,
+      ),
+      isFalse,
+    );
+    expect(
+      extraction.isLoginSuccessful(
+        {'c_user': '1', 'xs': 'x'},
+        SocialPlatform.facebook,
+      ),
+      isTrue,
+    );
   });
 }

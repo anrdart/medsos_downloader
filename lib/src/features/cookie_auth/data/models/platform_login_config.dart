@@ -57,10 +57,12 @@ class PlatformLoginConfig {
         "www.instagram.com",
         "instagram.com",
         "threads.net",
-        "www.threads.net"
+        "www.threads.net",
+        "threads.com",
+        "www.threads.com",
       ],
       requiredCookieKeys: ["sessionid", "ds_user_id"],
-      cookieDomains: [".instagram.com", ".threads.net"],
+      cookieDomains: [".instagram.com", ".threads.net", ".threads.com"],
     ),
     PlatformLoginConfig(
       platform: SocialPlatform.facebook,

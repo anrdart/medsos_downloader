@@ -276,13 +276,23 @@ class VideoModel extends Video {
       final height = item['height'] as int?;
       final quality = item['quality']?.toString() ??
           (height == null ? 'Video' : '${height}p');
-      final ext = _normalizeExtension(item['ext']?.toString() ?? 'mp4');
+      final kindName = item['mediaKind']?.toString();
+      final kind = MediaKind.values.firstWhere(
+        (value) => value.name == kindName,
+        orElse: () => MediaKind.video,
+      );
+      final ext = _normalizeExtension(
+        item['extension']?.toString() ??
+            item['ext']?.toString() ??
+            (kind == MediaKind.image ? 'jpg' : 'mp4'),
+      );
       links.add(VideoLinkModel(
         id: 'quality-${height ?? quality}',
         quality: _fmt(quality),
         link: '',
         size: item['filesize'] as int?,
-        mediaKind: MediaKind.video,
+        mediaKind: kind,
+        mode: kind == MediaKind.audio ? 'audio' : 'video',
         extension: ext,
         height: height,
         isDeferred: true,

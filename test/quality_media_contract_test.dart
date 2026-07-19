@@ -25,6 +25,35 @@ void main() {
     expect(video.videoLinks.last.extension, '.mp3');
   });
 
+  test('Threads info preserves video-first mixed media types and extensions',
+      () {
+    final video = VideoModel.fromYtdlpInfo({
+      'status': 'ok',
+      'title': 'Thread',
+      'formats': [
+        {
+          'quality': 'Video 1',
+          'height': 1,
+          'extension': '.mp4',
+          'mediaKind': 'video',
+        },
+        {
+          'quality': 'Image 2',
+          'height': 2,
+          'extension': '.jpg',
+          'mediaKind': 'image',
+        },
+      ],
+    }, 'https://threads.com/@u/post/x');
+
+    expect(video.videoLinks.map((e) => e.mediaKind), [
+      MediaKind.video,
+      MediaKind.image,
+    ]);
+    expect(video.videoLinks.map((e) => e.extension), ['.mp4', '.jpg']);
+    expect(video.videoLinks.first.isDeferred, isTrue);
+  });
+
   test('Cobalt metadata keeps audio and picker media kinds', () {
     final audio = VideoModel.fromCobalt({
       'status': 'tunnel',
@@ -50,7 +79,8 @@ void main() {
     expect(picker.videoLinks.map((e) => e.extension), ['.jpg', '.gif', '.mp4']);
   });
 
-  test('VideoLink JSON remains backward compatible while preserving metadata', () {
+  test('VideoLink JSON remains backward compatible while preserving metadata',
+      () {
     final link = VideoLink.fromJson({
       'quality': '720p',
       'link': '',

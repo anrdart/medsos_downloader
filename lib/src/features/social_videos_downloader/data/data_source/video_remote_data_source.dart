@@ -421,9 +421,11 @@ class TiktokVideoRemoteDataSource implements VideoBaseRemoteDataSource {
     if (url.isEmpty) throw Exception('Media URL kosong');
     final filename = data["filename"]?.toString() ?? 'media${option.extension}';
     final extension = _extensionFromFilename(filename, option.extension);
-    final kind = data["mediaKind"] == 'audio' || extension == '.mp3'
-        ? MediaKind.audio
-        : option.mediaKind;
+    final kindName = data["mediaKind"]?.toString();
+    final kind = MediaKind.values.firstWhere(
+      (value) => value.name == kindName,
+      orElse: () => extension == '.mp3' ? MediaKind.audio : option.mediaKind,
+    );
     return ResolvedMedia(
       url: url,
       filename: filename,

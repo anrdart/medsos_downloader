@@ -74,7 +74,7 @@ def _cookie_platform(url: str):
         return None
     routes = (
         (("youtube.com", "youtu.be"), "youtube"),
-        (("instagram.com",), "instagram"),  # Threads public extraction uses no login cookies.
+        (("instagram.com", "threads.net", "threads.com"), "instagram"),
         (("twitter.com", "x.com"), "twitter"),
         (("facebook.com", "fb.watch"), "facebook"),
         (("bilibili.tv", "biliintl.com"), "bilibili"),
@@ -291,50 +291,58 @@ def _safe_media_url(value):
     return value
 
 
-def _hydration_media(value, key="", media_context=False):
-    media_keys = {
-        "contenturl", "content_url", "playable_url", "playable_url_quality_hd",
-        "video_url", "image_url", "display_url", "thumbnailurl", "thumbnail_url",
-    }
+def _hydration_media(value, key="", media_kind=None):
+    video_keys = {"playable_url", "playable_url_quality_hd", "video_url"}
+    image_keys = {"image_url", "display_url", "thumbnailurl", "thumbnail_url"}
+    contextual_keys = {"url", "contenturl", "content_url"}
     if isinstance(value, dict):
         for child_key, child in value.items():
             child_key = str(child_key).lower()
-            child_context = media_context or child_key in {"video_versions", "image_versions2"}
-            yield from _hydration_media(child, child_key, child_context)
+            child_kind = media_kind
+            if child_key in {"video", "video_versions"}:
+                child_kind = "video"
+            elif child_key in {"image", "image_versions2"}:
+                child_kind = "image"
+            yield from _hydration_media(child, child_key, child_kind)
     elif isinstance(value, list):
         for child in value:
-            yield from _hydration_media(child, key, media_context)
-    elif key in media_keys or (key == "url" and media_context):
-        url = _safe_media_url(value)
-        if url:
-            yield url
+            yield from _hydration_media(child, key, media_kind)
+    else:
+        kind = (
+            "video" if key in video_keys else
+            "image" if key in image_keys else
+            media_kind if key in contextual_keys else None
+        )
+        if kind:
+            url = _safe_media_url(value)
+            if url:
+                yield url, kind
 
 
 def _parse_threads_html(document: str) -> dict:
     parser = _ThreadsHTMLParser()
     parser.feed(document)
     candidates = [
-        (parser.meta.get("og:video"), ".mp4"),
-        (parser.meta.get("og:image"), ".jpg"),
+        (parser.meta.get("og:video"), "video"),
+        (parser.meta.get("og:image"), "image"),
     ]
     for script in parser.scripts:
         try:
-            candidates.extend((url, None) for url in _hydration_media(json.loads(script)))
+            candidates.extend(_hydration_media(json.loads(script)))
         except (json.JSONDecodeError, TypeError, ValueError):
             continue
-    media = []
+    typed_media = []
     seen = set()
-    for candidate, fallback in candidates:
+    for candidate, kind in candidates:
         url = _safe_media_url(candidate)
         if not url or url in seen:
             continue
         seen.add(url)
-        extension = _extension_from_url(
-            url, fallback or (".mp4" if "video" in url else ".jpg"),
-        )
-        media.append({"url": url, **_media_metadata(extension)})
-        if len(media) == 8:
-            break
+        extension = _extension_from_url(url, ".mp4" if kind == "video" else ".jpg")
+        typed_media.append({"url": url, **_media_metadata(extension)})
+    # Video posts frequently expose only og:image plus hydration video URLs.
+    # Keep videos first so the default quality cannot resolve to the thumbnail.
+    media = sorted(typed_media, key=lambda item: item["mediaKind"] != "video")[:8]
     return {
         "title": parser.meta.get("og:title", "Threads post"),
         "description": parser.meta.get("og:description", ""),

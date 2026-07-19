@@ -98,6 +98,13 @@ class CookieRoutingTests(unittest.TestCase):
             with self.subTest(url=url):
                 self.assertEqual(ytdlp_api._cookie_platform(url), expected)
 
+    def test_threads_share_instagram_cookie_session(self):
+        for url in (
+            "https://threads.net/@u/post/x",
+            "https://www.threads.com/@u/post/x",
+        ):
+            self.assertEqual(ytdlp_api._cookie_platform(url), "instagram")
+
     def test_cookie_routing_uses_hostname_not_substring(self):
         self.assertIsNone(ytdlp_api._cookie_platform("https://youtube.com.evil.test/watch?v=x"))
 
@@ -244,6 +251,22 @@ class ThreadsExtractorTests(unittest.TestCase):
             ["video", "image"],
         )
 
+    def test_hydration_video_precedes_thumbnail_without_og_video(self):
+        payload = {
+            "video_versions": [{"url": "https://cdn.example/asset?id=video"}],
+            "image_versions2": {"candidates": [
+                {"url": "https://cdn.example/asset?id=image"},
+            ]},
+        }
+        result = ytdlp_api._parse_threads_html(
+            '<meta property="og:image" content="https://cdn.example/thumb">'
+            f'<script type="application/json">{json.dumps(payload)}</script>'
+        )
+        self.assertEqual(result["media"][0]["mediaKind"], "video")
+        self.assertEqual(result["media"][0]["extension"], ".mp4")
+        self.assertEqual(result["media"][1]["mediaKind"], "image")
+        self.assertEqual(result["media"][1]["extension"], ".jpg")
+
     def test_parses_open_graph_and_hydration_media_offline(self):
         result = ytdlp_api._parse_threads_html(THREADS_HTML)
         self.assertEqual(result["title"], "Public thread")
@@ -253,9 +276,9 @@ class ThreadsExtractorTests(unittest.TestCase):
             [(item["url"], item["mediaKind"]) for item in result["media"]],
             [
                 ("https://cdn.example/video.mp4", "video"),
+                ("https://cdn.example/alternate.mp4", "video"),
                 ("https://cdn.example/thumb.jpg", "image"),
                 ("https://cdn.example/photo.jpg", "image"),
-                ("https://cdn.example/alternate.mp4", "video"),
                 ("https://cdn.example/alternate.jpg", "image"),
             ],
         )
@@ -271,11 +294,12 @@ class ThreadsExtractorTests(unittest.TestCase):
         self.assertEqual(response["formats"][0]["extension"], ".mp4")
         self.assertEqual(response["formats"][0]["quality"], "Video 1")
         self.assertEqual(response["formats"][0]["height"], 1)
-        self.assertEqual(response["formats"][1]["mediaKind"], "image")
+        self.assertEqual(response["formats"][1]["mediaKind"], "video")
+        self.assertEqual(response["formats"][2]["mediaKind"], "image")
 
     def test_threads_download_returns_selected_public_media(self):
         req = ytdlp_api.VideoRequest(
-            url="https://threads.com/@u/post/abc", quality="2",
+            url="https://threads.com/@u/post/abc", quality="3",
         )
         parsed = ytdlp_api._parse_threads_html(THREADS_HTML)
         with patch.object(ytdlp_api, "_extract_threads", return_value=parsed):

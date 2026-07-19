@@ -36,15 +36,19 @@ class CookieExtractionService {
       }
     }
 
-    // Fallback: try JavaScript extraction for non-httpOnly cookies
-    if (allCookies.isEmpty) {
-      try {
-        final result =
-            await controller.runJavaScriptReturningResult('document.cookie');
-        final cookieStr = result.toString().replaceAll('"', '');
-        _parseCookieString(cookieStr, allCookies);
-      } catch (_) {}
-    }
+    // Merge JavaScript-visible cookies even when native extraction found some.
+    // Native remains authoritative (and includes HttpOnly); JS fills keys such
+    // as csrftoken/mid that may only be visible on the current page.
+    try {
+      final result =
+          await controller.runJavaScriptReturningResult('document.cookie');
+      final cookieStr = result.toString().replaceAll('"', '');
+      final jsCookies = <String, String>{};
+      _parseCookieString(cookieStr, jsCookies);
+      for (final entry in jsCookies.entries) {
+        allCookies.putIfAbsent(entry.key, () => entry.value);
+      }
+    } catch (_) {}
 
     return allCookies;
   }
@@ -75,12 +79,9 @@ class CookieExtractionService {
     if (config.requiredCookieKeys.isEmpty) {
       return config.manualCompletion ? cookies.isNotEmpty : false;
     }
-    for (final key in config.requiredCookieKeys) {
-      if (cookies.containsKey(key) && cookies[key]!.isNotEmpty) {
-        return true;
-      }
-    }
-    return false;
+    return config.requiredCookieKeys.every(
+      (key) => cookies[key]?.isNotEmpty == true,
+    );
   }
 
   String? extractUsername(
